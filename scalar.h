@@ -575,6 +575,7 @@ void SCALAR<T>::Enforce_Density_BC(ARRAY_3D<T>& rho)
 template<class T>
 void SCALAR<T>::Set_Initial_Density_Profile()
 {
+  /*
   T kk = parameters->pi, ka = .1, kd = parameters->pi, alpha = .99, 
     k_delta = .05*parameters->pi, rho0 = 1000., delta_rho = .03*rho0;
 
@@ -587,6 +588,21 @@ void SCALAR<T>::Set_Initial_Density_Profile()
                                              * (kk*(*grid)(i,j,k).y-k_eta+kd/2.)
                                              / k_delta);
       }
+  */
+
+  T alpha = .99;
+  T delta = .03;
+  T ratio = .03; //delta_rho/rho_0
+  T rho0 = 1000.;
+  T delta_rho = ratio*rho0;  
+
+  for(int i = imin-halo; i <= imax+halo; i++)
+    for(int j = jmin-halo; j <= jmax+halo; j++)
+      for(int k = kmin-halo; k <= kmax+halo; k++){
+	      (*Rho)(i,j,k) = -.5*delta_rho*tanh(2.*((*grid)(i,j,k).y + 
+                 0.5*parameters->y_length)/delta*atanh(alpha));      
+      }
+
   /*
   int half_j = round((jmax-jmin+1)/2);
   for(int i = imin-halo; i <= imax+halo; i++)

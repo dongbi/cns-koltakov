@@ -27,3 +27,6 @@ run16:
 
 clean:
 	\rm -f *.o *~ test
+
+clobber:
+	\rm -rf *.o *~ test ./output/*

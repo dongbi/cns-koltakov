@@ -40,6 +40,7 @@ class NAVIER_STOKES_SOLVER
   bool No_NAN();
   void Set_Initial_Conditions();
   void Post_Process();
+  void Start_Simulation_Timer();
 
  private:
   void Linear_Extrapolate_Into_Halo_Regions(ARRAY_3D<VECTOR_3D<T> >& u);
@@ -85,10 +86,17 @@ void NAVIER_STOKES_SOLVER<T>::Post_Process()
   // save data ever save_data_timestep_period
   if(parameters->time_step % parameters->save_data_timestep_period == 0){
     Save_Simulation_Data();  
-    Save_Simulation_Data_For_Restart();
+   // Save_Simulation_Data_For_Restart();
   }
 
   if(parameters->aggregate_data) data_aggregator->Aggregate();
+}
+//*****************************************************************************
+template<class T>
+void NAVIER_STOKES_SOLVER<T>::Start_Simulation_Timer()
+{
+  if(parameters->time_step < parameters->max_timestep) 
+    parameters->sim_time = clock();
 }
 //*****************************************************************************
 template<class T>
@@ -97,10 +105,20 @@ bool NAVIER_STOKES_SOLVER<T>::Increment_Time_Step_Counter()
   if(parameters->time_step < parameters->max_timestep) {
     parameters->time += parameters->delta_time;
     parameters->time_step++; 
+    parameters->sim_time = clock()-parameters->sim_time;
+    parameters->elapsed_time = ((float)parameters->sim_time)/CLOCKS_PER_SEC;
+    parameters->total_time += parameters->elapsed_time;
     if(mpi_driver->my_rank == 0 && 
-       parameters->time_step % parameters->print_timestep_period==0) 
+      parameters->time_step % parameters->print_timestep_period==0) {
       cout<< "Time step = " << parameters->time_step 
-          << ", Time ="     << parameters->time << endl;
+          << ", Time = "     << parameters->time << endl; 
+      if(parameters->time_step > 1)
+      cout<< "Previous time step took: " << parameters->elapsed_time << " s"
+          << ", Total runtime: "   << parameters->total_time << " s" 
+          << ", Time remaining ~ " << 
+            (parameters->max_timestep-parameters->time_step)*parameters->elapsed_time/3600 
+                                                                         << " hrs" << endl;
+    }
     return true;
   }else{
     if(mpi_driver->my_rank == 0) cout<< "Reached MAX time step!" << endl;

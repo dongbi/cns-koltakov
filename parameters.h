@@ -42,6 +42,9 @@ class PARAMETERS
   int argc; 
   char** argv;
 
+  clock_t sim_time;
+  float elapsed_time, total_time;
+
   BC_Type west_bc, east_bc, suth_bc, nrth_bc, back_bc, frnt_bc;
   Limiter_Type universal_limiter;
 
@@ -130,7 +133,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  scalar_advection = false;
+  scalar_advection = true;
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
@@ -140,15 +143,15 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   coriolis = false;  
   read_grid_from_file = false; //true;
   // boundary conditions
-  periodic_in_x = true;
+  periodic_in_x = false;
   periodic_in_y = false;
   periodic_in_z = true;
   resolve_interface_in_y = false;//true;// move nodes towards mid-depth
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_y = false;
   stretch_in_z = false;
-  y_stretching_ratio = (T)1.03; // if =0, uniform in vertical
-  west_bc = east_bc = FREE_SLIP;
+  y_stretching_ratio = (T)0.; //(T)1.03; // if =0, uniform in vertical
+  west_bc = east_bc = NO_SLIP;
   //suth_bc = FREE_SLIP; // sloshing wave
   suth_bc = NO_SLIP; // lock-exchange
   nrth_bc = back_bc = frnt_bc = FREE_SLIP;
@@ -159,7 +162,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   save_fluxes = false; 
   save_instant_velocity = true; //save instantaneous velocity field
   save_pressure = false; //save pressure field
-  aggregate_data = true; //save timeseries of any physical variables
+  aggregate_data = false; //save timeseries of any physical variables
 
   // multigrid
   mg_sub_levels = -1; //negative => optimal: calculated below
@@ -173,6 +176,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   time_step = 0;           // current time step
   time = (T)0;             // current time
+  elapsed_time = 0;        // runtime per time step
+  total_time = 0;          // total simulation runtime
   //delta_time = (T).002; //.01;(le.001)//.0001;(le)//.00001; // time increment
   //molecular_viscosity   = 1e-6; //(T).1;//1e-4;//5774e-12;//1e-6;//001;//.5;
   molecular_diffusivity = (T)0;//.5;
@@ -215,7 +220,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   k_min_w_h = k_min-halo_size; k_max_w_h = k_max+halo_size;
 
   // set pressure gradient to drive the flow
-  pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
+  //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
   //Set_Lid_Velocity(VECTOR_3D<T>(16,0,0));
 
@@ -269,9 +274,8 @@ void PARAMETERS<T>::Set_Depth_Based_On_Node_Locations(
                                           const ARRAY_3D<VECTOR_3D<T> >& nodes)
 {
   if(variable_fixed_depth)
-   Init_Depth_With_Sinusoid_Perturbation_In_X_Direction(y_length/10.,2., nodes);
-   //Init_Depth_With_Sloping_Bottom(nodes);
-
+   Init_Depth_With_Sloping_Bottom(nodes);
+   //Init_Depth_With_Sinusoid_Perturbation_In_X_Direction(y_length/10.,2.,nodes);
 }
 //*****************************************************************************
 template<class T>
@@ -307,6 +311,36 @@ void PARAMETERS<T>::Init_Depth_With_Sinusoid_Perturbation_In_X_Direction(
     for (int k=k_min_w_h; k<=k_max_w_h; k++)
       (*depth)(i,k) = y_length - pert_amplitude +
 	pert_amplitude * sin(period*(nodes(i,j_min,k).x-shift));
+}
+//*****************************************************************************
+// Sets depth(i,k) based on node locations for non-uniform grids, nodes:[0,1]
+// Sloping bottom
+//*****************************************************************************
+template<class T>
+void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
+	                    const ARRAY_3D<VECTOR_3D<T> >& nodes)
+{
+  if(depth) delete depth;
+  depth = new ARRAY_2D<T>(i_min, i_max, k_min, k_max, halo_size);
+
+  T x_s = 1.; //x position at beginning of slope
+  T node_s = x_s/x_length; //node at beginning of slope
+
+  T rise = .5*y_length; //in physical space
+  T run = x_length - x_s; //in physical space
+  T slope = rise/(run/x_length); //in x node coordinates
+
+  for (int i=i_min_w_h; i<=i_max_w_h; i++) {
+    for (int k=k_min_w_h; k<=k_max_w_h; k++) {
+      if (nodes(i,j_min,k).x < node_s)
+        (*depth)(i,k) = y_length; 
+      else
+        (*depth)(i,k) = (y_length + slope*node_s) - slope*nodes(i,j_min,k).x;
+      //(*depth)(i,k) = .25 - .25*tanh((nodes(i,j_min,k).x-1.));
+      //(*depth)(i,k) = y_length - slope*nodes(i,j_min,k).x;
+      //(*depth)(i,k) = y_length;
+    }
+  }
 }
 //*****************************************************************************
 #endif

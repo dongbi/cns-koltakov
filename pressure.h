@@ -238,7 +238,10 @@ template<class T> void PRESSURE<T>::Solve()
         max_abs_error  < parameters->mg_tol_error_resid    &&
         relative_resid < parameters->mg_tol_relative_resid ) {
       if(parameters->time_step % parameters->print_timestep_period==0 &&
-	 mpi_driver->my_rank==0) cout<<"Total V-cycles of MG = "<< iter <<endl;
+	 mpi_driver->my_rank==0) {
+        cout<< "Total V-cycles of MG = " << iter << endl;
+        cout<< "---" << endl;
+      }
       break; //end iteration for-loop
     }
   }//for: iter
