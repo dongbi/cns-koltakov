@@ -133,7 +133,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  two_d = true; //two-dimensional simulation (multigrid doesn't work in z)
+  two_d = false; //two-dimensional simulation (multigrid doesn't work in z)
   scalar_advection = true;
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
@@ -239,7 +239,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     int divisor = pow(2, mg_sub_levels);
     assert(num_local_nodes_x % divisor == 0);
     assert(num_local_nodes_y % divisor == 0);
-    //assert(num_local_nodes_z % divisor == 0);
+    if(!two_d)
+      assert(num_local_nodes_z % divisor == 0);
     // setting up structures for multigrid subgrids
     num_subgrid_total_nodes_x = new int[mg_sub_levels];
     num_subgrid_total_nodes_y = new int[mg_sub_levels];
@@ -252,8 +253,10 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     for(int n = 0; n < mg_sub_levels; n++) {
       num_subgrid_total_nodes_x[n] = num_total_nodes_x / pow(2,n+1);
       num_subgrid_total_nodes_y[n] = num_total_nodes_y / pow(2,n+1);
-      //num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);  
-      num_subgrid_total_nodes_z[n] = num_total_nodes_z;  
+      if(two_d)
+        num_subgrid_total_nodes_z[n] = num_total_nodes_z;  
+      else
+        num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);  
       num_subgrid_local_nodes_x[n] = num_subgrid_total_nodes_x[n] / num_cpu_x;
       num_subgrid_local_nodes_y[n] = num_subgrid_total_nodes_y[n] / num_cpu_y;
       num_subgrid_local_nodes_z[n] = num_subgrid_total_nodes_z[n] / num_cpu_z;
