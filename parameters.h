@@ -22,7 +22,7 @@ class PARAMETERS
       resolve_interface_in_y, stretch_in_x, stretch_in_y, stretch_in_z, 
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
-      turbulence, moving_grid, open_top, variable_fixed_depth, coriolis;
+      turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d;
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
@@ -133,6 +133,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
+  two_d = true; //two-dimensional simulation (multigrid doesn't work in z)
   scalar_advection = true;
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
@@ -209,9 +210,17 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   // max allowable # of MG levels based on the number of local nodes in x/y/z
   if(mg_sub_levels<0){
-    int mn = min( min(num_local_nodes_x,num_local_nodes_y), num_local_nodes_z );
-    mg_sub_levels = log(mn)/log(2);
+    int mn;
+    if(two_d) {
+      mn = min(num_local_nodes_x,num_local_nodes_y);
+      mg_sub_levels = log(mn)/log(2);
+    }
+    else {
+      mn = min( min(num_local_nodes_x,num_local_nodes_y), num_local_nodes_z );
+      mg_sub_levels = log(mn)/log(2);
+    }
   }
+
   halo_size = 2; //number of halo cells per boundary for local grids
   i_min = j_min = k_min = 1;
   i_max=num_local_nodes_x; j_max=num_local_nodes_y; k_max=num_local_nodes_z;
@@ -230,7 +239,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     int divisor = pow(2, mg_sub_levels);
     assert(num_local_nodes_x % divisor == 0);
     assert(num_local_nodes_y % divisor == 0);
-    assert(num_local_nodes_z % divisor == 0);
+    //assert(num_local_nodes_z % divisor == 0);
     // setting up structures for multigrid subgrids
     num_subgrid_total_nodes_x = new int[mg_sub_levels];
     num_subgrid_total_nodes_y = new int[mg_sub_levels];
@@ -243,7 +252,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     for(int n = 0; n < mg_sub_levels; n++) {
       num_subgrid_total_nodes_x[n] = num_total_nodes_x / pow(2,n+1);
       num_subgrid_total_nodes_y[n] = num_total_nodes_y / pow(2,n+1);
-      num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);  
+      //num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);  
+      num_subgrid_total_nodes_z[n] = num_total_nodes_z;  
       num_subgrid_local_nodes_x[n] = num_subgrid_total_nodes_x[n] / num_cpu_x;
       num_subgrid_local_nodes_y[n] = num_subgrid_total_nodes_y[n] / num_cpu_y;
       num_subgrid_local_nodes_z[n] = num_subgrid_total_nodes_z[n] / num_cpu_z;
@@ -336,8 +346,8 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
         (*depth)(i,k) = y_length; 
       else
         (*depth)(i,k) = (y_length + slope*node_s) - slope*nodes(i,j_min,k).x;
-      //(*depth)(i,k) = .25 - .25*tanh((nodes(i,j_min,k).x-1.));
-      //(*depth)(i,k) = y_length - slope*nodes(i,j_min,k).x;
+      //(*depth)(i,k) = .25 - .25*tanh((nodes(i,j,k_min).x-1.));
+      //(*depth)(i,k) = y_length - slope*nodes(i,j,k_min).x;
       //(*depth)(i,k) = y_length;
     }
   }

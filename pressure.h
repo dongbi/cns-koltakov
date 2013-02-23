@@ -442,7 +442,7 @@ void PRESSURE<T>::Smooth_Pressure(int level,
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.;
       Smooth_Pressure_In_Y(P, RHS, Residual, mq, mq_new); 
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.; 
-      Smooth_Pressure_In_Z(P, RHS, Residual, mq, mq_new); 
+      //Smooth_Pressure_In_Z(P, RHS, Residual, mq, mq_new); 
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.; 
       Smooth_Pressure_In_X(P, RHS, Residual, mq, mq_new); 
       //for(int i = P.I_Min()-1; i <= P.I_Max()+1; i++)
@@ -1240,6 +1240,10 @@ void PRESSURE<T>::Compute_Residual(T& residual_l2, T& rhs_l2, T& residual_min,
   MPI_Reduce(&res_loc_max, &residual_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
   // modify quantities on proc 0
   if(mpi_driver->my_rank == 0) {
+    cout << P.I_Size() << "," << P.J_Size() << "," << P.K_Size() << endl;
+    cout << mpi_driver->num_procs[0] << ","
+         << mpi_driver->num_procs[1] << ","
+         << mpi_driver->num_procs[2] << endl; 
     T denominator = P.I_Size() * mpi_driver->num_procs[0] * 
                     P.J_Size() * mpi_driver->num_procs[1] * 
                     P.K_Size() * mpi_driver->num_procs[2];
