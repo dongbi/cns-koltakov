@@ -55,10 +55,10 @@ class NAVIER_STOKES_SOLVER
   PARAMETERS<T>* parameters;
   MPI_DRIVER<T>* mpi_driver;
   CURVILINEAR_GRID<T>* grid;
-  CONVECTION<T>* convection0, *convection1;
+  CONVECTION<T>* convection1, *convection2;
   TURBULENCE<T>* turbulence;
   PRESSURE<T>* pressure;
-  SCALAR<T>* scalar0, *scalar1;
+  SCALAR<T>* scalar1, *scalar2;
   POTENTIAL_ENERGY<T>* potential_energy;
   DATA_AGGREGATOR<T>* data_aggregator;
   MOVING_GRID_ENGINE<T>* moving_grid_engine;
@@ -73,14 +73,14 @@ template<class T>
 void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
   if(parameters->scalar_advection){
     if(parameters->num_scalars == 1){
-      scalar0->Update_RHS();
-      scalar0->Solve();
+      scalar1->Update_RHS();
+      scalar1->Solve();
     }
     else if(parameters->num_scalars == 2){
-      scalar0->Update_RHS();
       scalar1->Update_RHS();
-      scalar0->Solve();
+      scalar2->Update_RHS();
       scalar1->Solve();
+      scalar2->Solve();
     }
     if(parameters->potential_energy){
       T E_background = potential_energy->Calculate(); // executed by all
