@@ -903,9 +903,9 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   if(parameters->save_pressure)
     mpi_driver->Write_Global_Array_To_Disk("pressure",*P,parameters->time_step);
   if(parameters->scalar_advection){
-    mpi_driver->Write_Global_Array_To_Disk("density", (*phi)(0), 
+    mpi_driver->Write_Global_Array_To_Disk("density", *((*phi)(0)), 
 					                 parameters->time_step);
-    mpi_driver->Write_Global_Array_To_Disk("scalar", (*phi)(1), 
+    mpi_driver->Write_Global_Array_To_Disk("scalar", *((*phi)(1)), 
 					                 parameters->time_step);
     if(parameters->potential_energy) potential_energy->Write_To_Disk();
   }  
