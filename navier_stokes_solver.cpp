@@ -28,9 +28,10 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
     (*phi)(0) = new ARRAY_3D<T>(*u); //rho
     (*phi)(1) = new ARRAY_3D<T>(*u); //passive scalar
   }
-  else 
+  else{ 
     //rho = NULL;
     phi = NULL;
+  }
 
   //initialize mpi driver and grid (moving or stationary) classes
   mpi_driver = new MPI_DRIVER<T>(*parameters);
@@ -42,26 +43,30 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
 
   //initialize pressure, convection and scalar(E_p, if needed) classes
   pressure = new PRESSURE<T>(parameters, mpi_driver, grid, P, u,U_xi,U_et,U_zt);
-  if(parameters->num_scalars <= 1) //no scalar or density only
-    convection0 = new CONVECTION<T>(parameters, mpi_driver, grid, *phi(0), 
+  if(parameters->num_scalars <= 1){ //no scalar or density only
+    convection0 = new CONVECTION<T>(parameters, mpi_driver, grid, (*phi)(0), 
 				 u, U_xi, U_et, U_zt); 
     convection1 = NULL;
-  else if (parameters->num_scalars = 2){ //density and passive scalar
-    convection0 = new CONVECTION<T>(parameters, mpi_driver, grid, *phi(0), 
+  }
+  else if (parameters->num_scalars == 2){ //density and passive scalar
+    convection0 = new CONVECTION<T>(parameters, mpi_driver, grid, (*phi)(0), 
 				 u, U_xi, U_et, U_zt); 
-    convection1 = new CONVECTION<T>(parameters, mpi_driver, grid, *phi(1), 
+    convection1 = new CONVECTION<T>(parameters, mpi_driver, grid, (*phi)(1), 
 				 u, U_xi, U_et, U_zt); 
   }
   if(parameters->scalar_advection){
-    if(parameters->num_scalars == 1) //only density
-      scalar0 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,convection1,turbulence,*phi(0));
+    if(parameters->num_scalars == 1){ //only density
+      scalar0 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,turbulence,(*phi)(0));
       scalar1 = NULL;
-    else if (parameters->num_scalars = 2){ //density and passive scalar
-      scalar0 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,convection1,turbulence,*phi(0));
-      scalar1 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,convection1,turbulence,*phi(1));
+    }
+    else if (parameters->num_scalars == 2){ //density and passive scalar
+      scalar0 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,turbulence,(*phi)(0));
+      scalar1 = new SCALAR<T>(parameters,mpi_driver,grid,convection1,turbulence,(*phi)(1));
+    }
     if(parameters->potential_energy) //depends on rho
-      potential_energy = new POTENTIAL_ENERGY<T>(parameters,mpi_driver,grid,*phi(0));
-    else potential_energy = NULL;
+      potential_energy = new POTENTIAL_ENERGY<T>(parameters,mpi_driver,grid,(*phi)(0));
+    else 
+      potential_energy = NULL;
   }
   else { 
     scalar0 = NULL;
@@ -71,7 +76,7 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   //initialize moving grid engine (based on scalar)
   if(parameters->moving_grid && parameters->scalar_advection) 
     moving_grid_engine = new MOVING_GRID_ENGINE<T>(parameters, mpi_driver, 
-		        convection0, (CURVILINEAR_MOVING_GRID<T>*) grid, *phi(0), u);
+		        convection0, (CURVILINEAR_MOVING_GRID<T>*) grid, (*phi)(0), u);
   else moving_grid_engine = NULL;
 
   //aggregate any physical parameter in a timeseries
@@ -99,7 +104,7 @@ NAVIER_STOKES_SOLVER<T>::~NAVIER_STOKES_SOLVER()
     delete phi; 
     if(potential_energy) delete potential_energy;
     delete scalar0;
-    if(scalar1) delete scalar1;
+    if(parameters->num_scalars == 2) delete scalar1;
   }
   if(data_aggregator) delete data_aggregator;
   delete grid; delete parameters; delete mpi_driver; 
@@ -224,7 +229,7 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           //(*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
           //                        * ((*rho)(i,j,k) - scalar->Rho_Rest(i,j,k));
           (*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
-                                  * ((*(*phi(0))(i,j,k)) - scalar->Rho_Rest(i,j,k));
+                                  * ((*(*phi)(0))(i,j,k) - scalar0->Rho_Rest(i,j,k));
 
   }
   // adding Adams-Bashforth contribution for current time step
@@ -898,9 +903,9 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   if(parameters->save_pressure)
     mpi_driver->Write_Global_Array_To_Disk("pressure",*P,parameters->time_step);
   if(parameters->scalar_advection){
-    mpi_driver->Write_Global_Array_To_Disk("density", *phi(0), 
+    mpi_driver->Write_Global_Array_To_Disk("density", (*phi)(0), 
 					                 parameters->time_step);
-    mpi_driver->Write_Global_Array_To_Disk("scalar", *phi(1), 
+    mpi_driver->Write_Global_Array_To_Disk("scalar", (*phi)(1), 
 					                 parameters->time_step);
     if(parameters->potential_energy) potential_energy->Write_To_Disk();
   }  
@@ -1086,10 +1091,10 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
            //density
            zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-           (*(*phi(0))(i,j,k)) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
+           (*(*phi)(0))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
                  0.5*parameters->y_length)/delta*atanh(alpha));           
            //passive scalar
-           (*(*phi(1))(i,j,k)) = 1.;
+           (*(*phi)(1))(i,j,k) = 1.;
         }
       }
     }

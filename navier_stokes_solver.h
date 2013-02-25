@@ -55,16 +55,16 @@ class NAVIER_STOKES_SOLVER
   PARAMETERS<T>* parameters;
   MPI_DRIVER<T>* mpi_driver;
   CURVILINEAR_GRID<T>* grid;
-  CONVECTION<T>* convection0, convection1;
+  CONVECTION<T>* convection0, *convection1;
   TURBULENCE<T>* turbulence;
   PRESSURE<T>* pressure;
-  SCALAR<T>* scalar0, scalar1;
+  SCALAR<T>* scalar0, *scalar1;
   POTENTIAL_ENERGY<T>* potential_energy;
   DATA_AGGREGATOR<T>* data_aggregator;
   MOVING_GRID_ENGINE<T>* moving_grid_engine;
 
   ARRAY_3D<VECTOR_3D<T> > *u, *RHS_for_AB;
-  ARRAY_1D<ARRAY_3D<T> > *phi;
+  ARRAY_1D<ARRAY_3D<T>* > *phi;
   ARRAY_3D<T> *P; //, *rho;
   ARRAY_3D<T> *U_xi, *U_et, *U_zt; //velocities on faces
 };
