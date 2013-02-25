@@ -29,7 +29,7 @@ class PARAMETERS
       mg_smoothing_sub_iters, 
       halo_size, num_local_nodes_x, num_local_nodes_y,num_local_nodes_z,
       num_cpu_x, num_cpu_y, num_cpu_z, num_total_nodes_x, num_total_nodes_y, 
-      num_total_nodes_z, time_step;
+      num_total_nodes_z, time_step, num_scalars;
   int i_min_w_h, i_max_w_h, j_min_w_h, j_max_w_h, k_min_w_h, k_max_w_h,
       i_min, i_max, j_min, j_max, k_min, k_max;
   T x_min, x_max, y_min, y_max, z_min, z_max, x_length, y_length, z_length,
@@ -134,6 +134,7 @@ template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
   scalar_advection = true;
+  num_scalars = 2; //0: rho, 1: passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;

@@ -22,7 +22,15 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   U_et = new ARRAY_3D<T>(*P);
   U_zt = new ARRAY_3D<T>(*P);
   RHS_for_AB = new ARRAY_3D<VECTOR_3D<T> >(*P); //'hb' in Fcode
-  if(parameters->scalar_advection) rho = new ARRAY_3D<T>(*u); else rho = NULL;
+  if(parameters->scalar_advection){
+    //rho = new ARRAY_3D<T>(*u); 
+    phi = new ARRAY_1D<ARRAY_3D<T>* >(parameters->num_scalars);
+    (*phi)(0) = new ARRAY_3D<T>(*u); //rho
+    (*phi)(1) = new ARRAY_3D<T>(*u); //passive scalar
+  }
+  else 
+    //rho = NULL;
+    phi = NULL;
 
   //initialize mpi driver and grid (moving or stationary) classes
   mpi_driver = new MPI_DRIVER<T>(*parameters);
@@ -34,19 +42,36 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
 
   //initialize pressure, convection and scalar(E_p, if needed) classes
   pressure = new PRESSURE<T>(parameters, mpi_driver, grid, P, u,U_xi,U_et,U_zt);
-  convection = new CONVECTION<T>(parameters, mpi_driver, grid, rho, 
-				 u, U_xi, U_et, U_zt); //need initialized 'rho'
+  if(parameters->num_scalars <= 1) //no scalar or density only
+    convection0 = new CONVECTION<T>(parameters, mpi_driver, grid, *phi(0), 
+				 u, U_xi, U_et, U_zt); 
+    convection1 = NULL;
+  else if (parameters->num_scalars = 2){ //density and passive scalar
+    convection0 = new CONVECTION<T>(parameters, mpi_driver, grid, *phi(0), 
+				 u, U_xi, U_et, U_zt); 
+    convection1 = new CONVECTION<T>(parameters, mpi_driver, grid, *phi(1), 
+				 u, U_xi, U_et, U_zt); 
+  }
   if(parameters->scalar_advection){
-    scalar = new SCALAR<T>(parameters,mpi_driver,grid,convection,turbulence,rho);
+    if(parameters->num_scalars == 1) //only density
+      scalar0 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,convection1,turbulence,*phi(0));
+      scalar1 = NULL;
+    else if (parameters->num_scalars = 2){ //density and passive scalar
+      scalar0 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,convection1,turbulence,*phi(0));
+      scalar1 = new SCALAR<T>(parameters,mpi_driver,grid,convection0,convection1,turbulence,*phi(1));
     if(parameters->potential_energy) //depends on rho
-      potential_energy = new POTENTIAL_ENERGY<T>(parameters,mpi_driver,grid,rho);
+      potential_energy = new POTENTIAL_ENERGY<T>(parameters,mpi_driver,grid,*phi(0));
     else potential_energy = NULL;
-  }else scalar = NULL;
+  }
+  else { 
+    scalar0 = NULL;
+    scalar1 = NULL;
+  }
 
   //initialize moving grid engine (based on scalar)
   if(parameters->moving_grid && parameters->scalar_advection) 
     moving_grid_engine = new MOVING_GRID_ENGINE<T>(parameters, mpi_driver, 
-		        convection, (CURVILINEAR_MOVING_GRID<T>*) grid, rho, u);
+		        convection0, (CURVILINEAR_MOVING_GRID<T>*) grid, *phi(0), u);
   else moving_grid_engine = NULL;
 
   //aggregate any physical parameter in a timeseries
@@ -70,8 +95,12 @@ NAVIER_STOKES_SOLVER<T>::~NAVIER_STOKES_SOLVER()
 {
   delete u; delete U_xi; delete U_et; delete U_zt; delete P; delete RHS_for_AB;
   if(parameters->moving_grid) delete moving_grid_engine;
-  if(parameters->scalar_advection) 
-    {delete rho; delete scalar; if(potential_energy) delete potential_energy;}
+  if(parameters->scalar_advection){ 
+    delete phi; 
+    if(potential_energy) delete potential_energy;
+    delete scalar0;
+    if(scalar1) delete scalar1;
+  }
   if(data_aggregator) delete data_aggregator;
   delete grid; delete parameters; delete mpi_driver; 
 }
@@ -107,11 +136,11 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   if(parameters->pressure_gradient) Add_Pressure_Gradient_Term(RHS);
 
   // add convection term with QUICK
-  convection->Add_Quick_Scheme_Convection_Term(*RHS_for_AB);
+  convection0->Add_Quick_Scheme_Convection_Term(*RHS_for_AB);
 
   // add convection term to correct for moving grid velocity
   if(parameters->moving_grid)
-    convection->Add_Moving_Grid_Convection_Term(*RHS_for_AB);
+    convection0->Add_Moving_Grid_Convection_Term(*RHS_for_AB);
     
   // LES self-similarity term
   if(parameters->turbulence) *RHS_for_AB -= *turbulence->tau;
@@ -192,8 +221,11 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
             (*RHS_for_AB)(i,j,k).z +=parameters->omega * (*u)(i,j,k).x*jacobian;
           }
           // buoyancy term
+          //(*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
+          //                        * ((*rho)(i,j,k) - scalar->Rho_Rest(i,j,k));
           (*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
-                                  * ((*rho)(i,j,k) - scalar->Rho_Rest(i,j,k));
+                                  * ((*(*phi(0))(i,j,k)) - scalar->Rho_Rest(i,j,k));
+
   }
   // adding Adams-Bashforth contribution for current time step
   // 'RHS_for_AB' is saved from this point until the next time step
@@ -573,7 +605,7 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   // Swap halo regions among procs
   mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u);  
 
-  convection->Quick_Velocity_Flux_Update(*u); // Velocity fluxes on faces
+  convection0->Quick_Velocity_Flux_Update(*u); // Velocity fluxes on faces
 
   mpi_driver->Syncronize_All_Procs(); // Wait for all procs to finish
 }
@@ -866,7 +898,9 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   if(parameters->save_pressure)
     mpi_driver->Write_Global_Array_To_Disk("pressure",*P,parameters->time_step);
   if(parameters->scalar_advection){
-    mpi_driver->Write_Global_Array_To_Disk("density", *rho, 
+    mpi_driver->Write_Global_Array_To_Disk("density", *phi(0), 
+					                 parameters->time_step);
+    mpi_driver->Write_Global_Array_To_Disk("scalar", *phi(1), 
 					                 parameters->time_step);
     if(parameters->potential_energy) potential_energy->Write_To_Disk();
   }  
@@ -1050,9 +1084,12 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+           //density
            zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-           (*rho)(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
+           (*(*phi(0))(i,j,k)) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
                  0.5*parameters->y_length)/delta*atanh(alpha));           
+           //passive scalar
+           (*(*phi(1))(i,j,k)) = 1.;
         }
       }
     }
