@@ -24,9 +24,9 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   RHS_for_AB = new ARRAY_3D<VECTOR_3D<T> >(*P); //'hb' in Fcode
 
   //initialize scalar
+  phi = new ARRAY_1D<ARRAY_3D<T>* >(parameters->num_scalars);
   if(parameters->scalar_advection){
     //rho = new ARRAY_3D<T>(*u); 
-    phi = new ARRAY_1D<ARRAY_3D<T>* >(parameters->num_scalars);
     (*phi)(1) = new ARRAY_3D<T>(parameters->i_min, parameters->i_max, 
         parameters->j_min, parameters->j_max, 
         parameters->k_min, parameters->k_max, parameters->halo_size); //rho
@@ -34,7 +34,8 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   }
   else{ 
     //rho = NULL;
-    phi = NULL;
+    (*phi)(1) = NULL;
+    (*phi)(2) = NULL;
   }
 
   //initialize mpi driver and grid (moving or stationary) classes
@@ -751,84 +752,90 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
   if(mpi_driver->nrth_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++)
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
-	if(parameters->lid_velocity){
-	  //u(i,u.J_Max(),k) = (*parameters->lid_velocity)(i,k);
-	  u(i,u.J_Max()+1,k) = (T)2 * (*parameters->lid_velocity)(i,k) - 
-	                                              u(i,u.J_Max(),k);
-	}
+        if(parameters->lid_velocity){
+          //u(i,u.J_Max(),k) = (*parameters->lid_velocity)(i,k);
+          u(i,u.J_Max()+1,k) = (T)2 * (*parameters->lid_velocity)(i,k) - 
+            u(i,u.J_Max(),k);
+        }
         else
-	  switch(parameters->nrth_bc){
-	    case FREE_SLIP: u(i,u.J_Max()+1,k) =   u(i,u.J_Max(),k); break;
-	    case   NO_SLIP: u(i,u.J_Max()+1,k) = - u(i,u.J_Max(),k); break;
-	  }
-	u(i,u.J_Max()+2,k) = (T)3 * (u(i,u.J_Max()+1,k) - u(i,u.J_Max(),k))
-                                  +  u(i,u.J_Max()-1,k);
-  }
+          switch(parameters->nrth_bc){
+            case FREE_SLIP: u(i,u.J_Max()+1,k) =   u(i,u.J_Max(),k); break;
+            case   NO_SLIP: u(i,u.J_Max()+1,k) = - u(i,u.J_Max(),k); break;
+          }
+        u(i,u.J_Max()+2,k) = (T)3 * (u(i,u.J_Max()+1,k) - u(i,u.J_Max(),k))
+          +  u(i,u.J_Max()-1,k);
+      }
   // BC: Bottom
   if(mpi_driver->suth_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++)
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
-	if(parameters->bed_velocity){
-	  //u(i,u.J_Min(),k) = (*parameters->bed_velocity)(i,k);
-	  u(i,u.J_Min()-1,k) = (T)2 * (*parameters->bed_velocity)(i,k) - 
-	                                              u(i,u.J_Min(),k);
-	}
-	else	  
-	  switch(parameters->suth_bc){
-	    case FREE_SLIP: u(i,u.J_Min()-1,k) =   u(i,u.J_Min(),k); break;
-	    case   NO_SLIP: u(i,u.J_Min()-1,k) = - u(i,u.J_Min(),k); break; 
-	  }
-	u(i,u.J_Min()-2,k) = (T)3 * (u(i,u.J_Min()-1,k) - u(i,u.J_Min(),k))
-                                  +  u(i,u.J_Min()+1,k);
-	
-	if(parameters->bed_velocity) 
-	  u(i,u.J_Min()-2,k) =  u(i,u.J_Min()-1,k) =
-	                                       (*parameters->bed_velocity)(i,k);
-  }
+        if(parameters->bed_velocity){
+          //u(i,u.J_Min(),k) = (*parameters->bed_velocity)(i,k);
+          u(i,u.J_Min()-1,k) = (T)2 * (*parameters->bed_velocity)(i,k) - 
+            u(i,u.J_Min(),k);
+        }
+        else	  
+          switch(parameters->suth_bc){
+            case FREE_SLIP: u(i,u.J_Min()-1,k) =   u(i,u.J_Min(),k); break;
+            case   NO_SLIP: u(i,u.J_Min()-1,k) = - u(i,u.J_Min(),k); break; 
+          }
+        u(i,u.J_Min()-2,k) = (T)3 * (u(i,u.J_Min()-1,k) - u(i,u.J_Min(),k))
+          +  u(i,u.J_Min()+1,k);
+
+        if(parameters->bed_velocity) 
+          u(i,u.J_Min()-2,k) =  u(i,u.J_Min()-1,k) =
+            (*parameters->bed_velocity)(i,k);
+      }
   // BC: Left
   if(mpi_driver->west_proc == MPI_PROC_NULL)
     for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++)
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
-	switch(parameters->west_bc){
-	  case FREE_SLIP: u(u.I_Min()-1,j,k) =   u(u.I_Min(),j,k); break;
-	  case   NO_SLIP: u(u.I_Min()-1,j,k) = - u(u.I_Min(),j,k); break; 
-	}
-	u(u.I_Min()-2,j,k) = (T)3 * (u(u.I_Min()-1,j,k) - u(u.I_Min(),j,k))
-	                          +  u(u.I_Min()+1,j,k);
-  }
+        if(parameters->west_velocity){
+          //u(u.I_Min(),j,k) = (*parameters->west_velocity)(j,k);
+          u(u.I_Min()-1,j,k) = (T)2 * (*parameters->west_velocity)(j,k) - 
+            u(u.I_Min(),j,k);
+        }
+        else
+          switch(parameters->west_bc){
+            case FREE_SLIP: u(u.I_Min()-1,j,k) =   u(u.I_Min(),j,k); break;
+            case   NO_SLIP: u(u.I_Min()-1,j,k) = - u(u.I_Min(),j,k); break; 
+          }
+        u(u.I_Min()-2,j,k) = (T)3 * (u(u.I_Min()-1,j,k) - u(u.I_Min(),j,k))
+            +  u(u.I_Min()+1,j,k);
+      }
   // BC: Right
   if(mpi_driver->east_proc == MPI_PROC_NULL)
     for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++)
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
-	switch(parameters->east_bc){
-	  case FREE_SLIP: u(u.I_Max()+1,j,k) =   u(u.I_Max(),j,k); break;
-	  case   NO_SLIP: u(u.I_Max()+1,j,k) = - u(u.I_Max(),j,k); break; 
-	}
-	u(u.I_Max()+2,j,k) = (T)3 * (u(u.I_Max()+1,j,k) - u(u.I_Max(),j,k))
-	                          +  u(u.I_Max()-1,j,k);
-  }
+        switch(parameters->east_bc){
+          case FREE_SLIP: u(u.I_Max()+1,j,k) =   u(u.I_Max(),j,k); break;
+          case   NO_SLIP: u(u.I_Max()+1,j,k) = - u(u.I_Max(),j,k); break; 
+        }
+        u(u.I_Max()+2,j,k) = (T)3 * (u(u.I_Max()+1,j,k) - u(u.I_Max(),j,k))
+          +  u(u.I_Max()-1,j,k);
+      }
   // BC: Back
   if(mpi_driver->back_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++) 
       for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++) {
-	switch(parameters->back_bc){
-	  case FREE_SLIP: u(i,j,u.K_Min()-1) =   u(i,j,u.K_Min()); break;
-	  case   NO_SLIP: u(i,j,u.K_Min()-1) = - u(i,j,u.K_Min()); break; 
-	}
-	u(i,j,u.K_Min()-2) = (T)3 * (u(i,j,u.K_Min()-1) - u(i,j,u.K_Min()))
-	                          +  u(i,j,u.K_Min()+1);
-  }
+        switch(parameters->back_bc){
+          case FREE_SLIP: u(i,j,u.K_Min()-1) =   u(i,j,u.K_Min()); break;
+          case   NO_SLIP: u(i,j,u.K_Min()-1) = - u(i,j,u.K_Min()); break; 
+        }
+        u(i,j,u.K_Min()-2) = (T)3 * (u(i,j,u.K_Min()-1) - u(i,j,u.K_Min()))
+          +  u(i,j,u.K_Min()+1);
+      }
   // BC: Front
   if(mpi_driver->frnt_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++) 
       for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++) {
-	switch(parameters->frnt_bc){
-	  case FREE_SLIP: u(i,j,u.K_Max()+1) =   u(i,j,u.K_Max()); break;
-	  case   NO_SLIP: u(i,j,u.K_Max()+1) = - u(i,j,u.K_Max()); break; 
-	}
-	u(i,j,u.K_Max()+2) = (T)3 * (u(i,j,u.K_Max()+1) - u(i,j,u.K_Max()))
-	                          +  u(i,j,u.K_Max()-1);
-  }
+        switch(parameters->frnt_bc){
+          case FREE_SLIP: u(i,j,u.K_Max()+1) =   u(i,j,u.K_Max()); break;
+          case   NO_SLIP: u(i,j,u.K_Max()+1) = - u(i,j,u.K_Max()); break; 
+        }
+        u(i,j,u.K_Max()+2) = (T)3 * (u(i,j,u.K_Max()+1) - u(i,j,u.K_Max()))
+          +  u(i,j,u.K_Max()-1);
+      }
 }
 //*****************************************************************************
 // Calculates of CFL for the current time step and updates 'max_cfl'
@@ -1076,8 +1083,8 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   //Variable depth channel example
   //if(parameters->scalar_advection) scalar->Set_Uniform_Density_Profile((T)1);
   
-  //Single Solitary wave example
-  //set velocity and stratification
+  //Bobby's cases
+  //Set velocity and stratification
   T alpha = .99;
   T delta = .03;
   T ratio = .03; //delta_rho/rho_0
@@ -1088,6 +1095,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   T zeta;
 
   if(parameters->scalar_advection) {
+    //Single Solitary wave 
     //density
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
@@ -1098,6 +1106,18 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
          }
       }
     }
+    /*
+    //Progressive wave 
+    //density
+    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+        for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+           (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y + 
+                 0.5*parameters->y_length)/delta*atanh(alpha));           
+         }
+      }
+    }
+    */
     //passive scalar
     if(parameters->num_scalars == 2){
       for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {

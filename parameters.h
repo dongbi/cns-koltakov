@@ -49,7 +49,7 @@ class PARAMETERS
   Limiter_Type universal_limiter;
 
   ARRAY_2D<T> *depth;
-  ARRAY_2D<VECTOR_3D<T> > *lid_velocity, *bed_velocity;
+  ARRAY_2D<VECTOR_3D<T> > *lid_velocity, *bed_velocity, *west_velocity;
   VECTOR_3D<T>  *pressure_gradient;
 
   PARAMETERS(int ac, char** av) : argc(ac),argv(av) 
@@ -69,10 +69,12 @@ class PARAMETERS
       delete [] num_subgrid_local_nodes_z;}
     if(lid_velocity) delete lid_velocity;
     if(bed_velocity) delete bed_velocity;
+    if(west_velocity) delete west_velocity;
     if(depth) delete depth;
     if(pressure_gradient) delete pressure_gradient;}
 
   void Set_Lid_Velocity(const VECTOR_3D<T>& v);
+  void Set_West_Velocity();
   void Set_Depth_Based_On_Node_Locations(const ARRAY_3D<VECTOR_3D<T> >& nodes);
  
  private:
@@ -133,7 +135,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  scalar_advection = true;
+  scalar_advection = false;
   num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
@@ -191,6 +193,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   critical_cfl = (T).98; // termination barrier for cfl
   lid_velocity = NULL;
   bed_velocity = NULL;
+  west_velocity = NULL;
   depth = NULL;
   pressure_gradient = NULL;
   grid_filename = "grid_sloshing_wave.dat";//"grid_lock_exchange.dat";
@@ -224,6 +227,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
   //Set_Lid_Velocity(VECTOR_3D<T>(16,0,0));
+  Set_West_Velocity();
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
@@ -265,6 +269,18 @@ void PARAMETERS<T>::Set_Lid_Velocity(const VECTOR_3D<T>& v)
   for(int i=i_min_w_h; i<=i_max_w_h; i++)
     for(int k=k_min_w_h; k<=k_max_w_h; k++)
       (*lid_velocity)(i,k) = v;
+}
+//*****************************************************************************
+// Sets velocity of the west boundary: used for progressive wave case 
+//*****************************************************************************
+template<class T>
+void PARAMETERS<T>::Set_West_Velocity()
+{
+  if(west_velocity) delete west_velocity;
+  west_velocity = new ARRAY_2D<VECTOR_3D<T> >(j_min,j_max,k_min,k_max,halo_size);
+  for(int j=j_min_w_h; j<=j_max_w_h; j++)
+    for(int k=k_min_w_h; k<=k_max_w_h; k++)
+      (*west_velocity)(j,k).x = .2;
 }
 //*****************************************************************************
 // Callback function (called by the CURVILINEAR_GRID class)
