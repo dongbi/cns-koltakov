@@ -154,9 +154,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_y = false;
   stretch_in_z = false;
   y_stretching_ratio = (T)0.; //(T)1.03; // if =0, uniform in vertical
-  west_bc = east_bc = NO_SLIP;
-  //suth_bc = FREE_SLIP; // sloshing wave
-  suth_bc = NO_SLIP; // lock-exchange
+  west_bc = FREE_SLIP;
+  east_bc = NO_SLIP;
+  suth_bc = NO_SLIP; 
   nrth_bc = back_bc = frnt_bc = FREE_SLIP;
   universal_limiter = SHARP; //UPWIND; //MUSCL; //scalar convection
 
@@ -226,8 +226,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  //Set_Lid_Velocity(VECTOR_3D<T>(16,0,0));
-  Set_West_Velocity();
+  //Set_Lid_Velocity(VECTOR_3D<T>(.2,0,0));
+  Set_West_Velocity(VECTOR_3D<T>(.2,0,0));
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
@@ -274,13 +274,13 @@ void PARAMETERS<T>::Set_Lid_Velocity(const VECTOR_3D<T>& v)
 // Sets velocity of the west boundary: used for progressive wave case 
 //*****************************************************************************
 template<class T>
-void PARAMETERS<T>::Set_West_Velocity()
+void PARAMETERS<T>::Set_West_Velocity(const VECTOR_3D<T>& v)
 {
   if(west_velocity) delete west_velocity;
   west_velocity = new ARRAY_2D<VECTOR_3D<T> >(j_min,j_max,k_min,k_max,halo_size);
   for(int j=j_min_w_h; j<=j_max_w_h; j++)
     for(int k=k_min_w_h; k<=k_max_w_h; k++)
-      (*west_velocity)(j,k).x = .2;
+      (*west_velocity)(j,k).x = v;
 }
 //*****************************************************************************
 // Callback function (called by the CURVILINEAR_GRID class)
