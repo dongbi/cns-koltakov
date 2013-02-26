@@ -37,7 +37,7 @@ class PARAMETERS
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
-    omega, amp_p_grad, freq_p_grad;
+    omega, amp_p_grad, freq_p_grad, forcing_amp, m, freq;
   std::string output_dir, grid_filename;
   int argc; 
   char** argv;
@@ -226,8 +226,13 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  //Set_Lid_Velocity(VECTOR_3D<T>(.2,0,0));
-  Set_West_Velocity(VECTOR_3D<T>(.2,0,0));
+  //Set_Lid_Velocity(VECTOR_3D<T>(16,0,0));
+
+  //Progressive wave boundary condition
+  Set_West_Velocity();
+  forcing_amp = .2;
+  m = pi/y_length;
+  freq = 2.*pi/10.;
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
@@ -274,13 +279,13 @@ void PARAMETERS<T>::Set_Lid_Velocity(const VECTOR_3D<T>& v)
 // Sets velocity of the west boundary: used for progressive wave case 
 //*****************************************************************************
 template<class T>
-void PARAMETERS<T>::Set_West_Velocity(const VECTOR_3D<T>& v)
+void PARAMETERS<T>::Set_West_Velocity()
 {
   if(west_velocity) delete west_velocity;
   west_velocity = new ARRAY_2D<VECTOR_3D<T> >(j_min,j_max,k_min,k_max,halo_size);
   for(int j=j_min_w_h; j<=j_max_w_h; j++)
     for(int k=k_min_w_h; k<=k_max_w_h; k++)
-      (*west_velocity)(j,k).x = v;
+      (*west_velocity)(j,k).x = 0;
 }
 //*****************************************************************************
 // Callback function (called by the CURVILINEAR_GRID class)

@@ -791,6 +791,10 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
     for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++)
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
         if(parameters->west_velocity){
+          //Progressive wave
+          (*(parameters->west_velocity))(j,k).x = 
+            parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y)
+                                   *sin(parameters->freq*parameters->time);
           //u(u.I_Min(),j,k) = (*parameters->west_velocity)(j,k);
           u(u.I_Min()-1,j,k) = (T)2 * (*parameters->west_velocity)(j,k) - 
             u(u.I_Min(),j,k);
@@ -1095,6 +1099,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   T zeta;
 
   if(parameters->scalar_advection) {
+    /*
     //Single Solitary wave 
     //density
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1106,7 +1111,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
          }
       }
     }
-    /*
+    */
     //Progressive wave 
     //density
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1117,7 +1122,6 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
          }
       }
     }
-    */
     //passive scalar
     if(parameters->num_scalars == 2){
       for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
