@@ -162,7 +162,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   // saving on disk
   //save_data_timestep_period = 500; //write on disk after each period
-  save_fluxes = false; 
+  save_fluxes = true; 
   save_instant_velocity = true; //save instantaneous velocity field
   save_pressure = false; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
@@ -226,7 +226,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  //Set_Lid_Velocity(VECTOR_3D<T>(16,0,0));
+  //Set_Lid_Velocity(VECTOR_3D<T>(.2,0,0));
 
   //Progressive wave boundary condition
   Set_West_Velocity();

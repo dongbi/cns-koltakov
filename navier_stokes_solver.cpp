@@ -612,6 +612,8 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   // Swap halo regions among procs
   mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u);  
 
+  Set_Progressive_Wave_BC();
+
   convection1->Quick_Velocity_Flux_Update(*u); // Velocity fluxes on faces
 
   mpi_driver->Syncronize_All_Procs(); // Wait for all procs to finish
@@ -791,13 +793,10 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
     for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++)
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
         if(parameters->west_velocity){
-          //Progressive wave
-          (*(parameters->west_velocity))(j,k).x = 
-            parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y)
-                                   *sin(parameters->freq*parameters->time);
-          //u(u.I_Min(),j,k) = (*parameters->west_velocity)(j,k);
-          u(u.I_Min()-1,j,k) = (T)2 * (*parameters->west_velocity)(j,k) - 
-            u(u.I_Min(),j,k);
+          u(u.I_Min()-1,j,k).x = (T)2 * (*parameters->west_velocity)(j,k).x - 
+            u(u.I_Min(),j,k).x;                      //Set velocity in x
+          u(u.I_Min()-1,j,k).y = u(u.I_Min(),j,k).y; //Gradient free in y,z
+          u(u.I_Min()-1,j,k).z = u(u.I_Min(),j,k).z;
         }
         else
           switch(parameters->west_bc){
@@ -1161,8 +1160,22 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
 
   //POSTPROCESS: enforce BCs and populate ghost cells
   assert(mpi_driver);
+  Set_Progressive_Wave_BC();
   Enforce_Velocity_BC(*u);  
   mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u); 
 }
+//*****************************************************************************
+// Set progressive wave BC
+//*****************************************************************************
+template<class T> 
+void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC()
+{
+  if(parameters->west_velocity)
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) 
+        (*(parameters->west_velocity))(j,k).x = 
+          -parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y)
+          *sin(parameters->freq*parameters->time);
+} 
 //*****************************************************************************
 template class NAVIER_STOKES_SOLVER<double>;
