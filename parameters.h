@@ -226,7 +226,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  //Set_Lid_Velocity(VECTOR_3D<T>(.2,0,0));
+  //Set_Lid_Velocity(VECTOR_3D<T>(0,-.2,0));
 
   //Progressive wave boundary condition
   Set_West_Velocity();

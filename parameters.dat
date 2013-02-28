@@ -9,10 +9,10 @@
  num_total_nodes_z  =  32           // number of grid nodes in Z coordinate
  num_cpu_x  =  4                    // number of processors in X coordinate
  num_cpu_y  =  2                    // number of processors in Y coordinate
- num_cpu_z  =  1                    // number of processors in Z coordinate
+ num_cpu_z  =  2                    // number of processors in Z coordinate
  delta_time = .01                   // delta time
  max_timestep = 3500                // maximum timestep for the simulation
- save_data_timestep_period = 1      // write on disk after each period
+ save_data_timestep_period = 25     // write on disk after each period
  print_timestep_period = 1          // display to console after each period
  restart_timestep    =  0           // restarts sim, if nontrivial value
  molecular_viscosity =  1e-6

@@ -39,7 +39,7 @@ class NAVIER_STOKES_SOLVER
   bool Check_CFL();
   bool No_NAN();
   void Set_Initial_Conditions();
-  void Set_Progressive_Wave_BC();
+  void Set_Progressive_Wave_BC(T time);
   void Post_Process();
   void Start_Simulation_Timer();
 

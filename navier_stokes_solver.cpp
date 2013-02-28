@@ -5,7 +5,7 @@
 //*****************************************************************************
 // Constructor
 //*****************************************************************************
-template<class T>
+  template<class T>
 NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
 {
   //initialize simulation parameters class
@@ -13,11 +13,11 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
 
   //initialize physical member variables: velocity, pressure, density(if needed)
   u = new ARRAY_3D<VECTOR_3D<T> >(parameters->i_min, parameters->i_max, 
-                                  parameters->j_min, parameters->j_max, 
-                   parameters->k_min, parameters->k_max, parameters->halo_size);
+      parameters->j_min, parameters->j_max, 
+      parameters->k_min, parameters->k_max, parameters->halo_size);
   P = new ARRAY_3D<T>(parameters->i_min, parameters->i_max, 
-                      parameters->j_min, parameters->j_max, 
-                 parameters->k_min, parameters->k_max, parameters->halo_size-1);
+      parameters->j_min, parameters->j_max, 
+      parameters->k_min, parameters->k_max, parameters->halo_size-1);
   U_xi = new ARRAY_3D<T>(*P);
   U_et = new ARRAY_3D<T>(*P);
   U_zt = new ARRAY_3D<T>(*P);
@@ -50,17 +50,17 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   pressure = new PRESSURE<T>(parameters, mpi_driver, grid, P, u,U_xi,U_et,U_zt);
   if(parameters->num_scalars <= 1){ //no scalar or density only
     convection1 = new CONVECTION<T>(parameters, mpi_driver, grid, (*phi)(1), 
-				 u, U_xi, U_et, U_zt); 
+        u, U_xi, U_et, U_zt); 
     convection2 = NULL;
   }
   else if (parameters->num_scalars == 2){ //density and passive scalar
     convection1 = new CONVECTION<T>(parameters, mpi_driver, grid, (*phi)(1), 
-				 u, U_xi, U_et, U_zt); 
+        u, U_xi, U_et, U_zt); 
     convection2 = new CONVECTION<T>(parameters, mpi_driver, grid, (*phi)(2), 
-				 u, U_xi, U_et, U_zt); 
+        u, U_xi, U_et, U_zt); 
   }
   if(parameters->scalar_advection){
-      scalar1 = new SCALAR<T>(parameters,mpi_driver,grid,convection1,turbulence,(*phi)(1));
+    scalar1 = new SCALAR<T>(parameters,mpi_driver,grid,convection1,turbulence,(*phi)(1));
     if (parameters->num_scalars == 2) //density and passive scalar
       scalar2 = new SCALAR<T>(parameters,mpi_driver,grid,convection2,turbulence,(*phi)(2));
     else
@@ -78,7 +78,7 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   //initialize moving grid engine (based on scalar)
   if(parameters->moving_grid && parameters->scalar_advection) 
     moving_grid_engine = new MOVING_GRID_ENGINE<T>(parameters, mpi_driver, 
-		        convection1, (CURVILINEAR_MOVING_GRID<T>*) grid, (*phi)(1), u);
+        convection1, (CURVILINEAR_MOVING_GRID<T>*) grid, (*phi)(1), u);
   else moving_grid_engine = NULL;
 
   //aggregate any physical parameter in a timeseries
@@ -97,7 +97,7 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
 //*****************************************************************************
 // Destructor
 //*****************************************************************************
-template<class T>
+  template<class T>
 NAVIER_STOKES_SOLVER<T>::~NAVIER_STOKES_SOLVER()
 {
   delete u; delete U_xi; delete U_et; delete U_zt; delete P; delete RHS_for_AB;
@@ -114,7 +114,7 @@ NAVIER_STOKES_SOLVER<T>::~NAVIER_STOKES_SOLVER()
 //*****************************************************************************
 // Predictor step: result is intermediate velocity (u*)
 //*****************************************************************************
-template<class T>
+  template<class T>
 void NAVIER_STOKES_SOLVER<T>::Predictor()
 {
   T imin = grid->I_Min(), jmin = grid->J_Min(), kmin = grid->K_Min(), 
@@ -135,10 +135,10 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
     // adding Adams-Bashforth contribution from previous time step
     RHS = (T)-.5 * (*RHS_for_AB);
   }
-  
+
   // reset array for the new time step
   RHS_for_AB->Set_All_Elements_To(VECTOR_3D<T>((T)0,(T)0,(T)0));
- 
+
   // add flow driving pressure gradient (+perturbation) term 
   if(parameters->pressure_gradient) Add_Pressure_Gradient_Term(RHS);
 
@@ -148,7 +148,7 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   // add convection term to correct for moving grid velocity
   if(parameters->moving_grid)
     convection1->Add_Moving_Grid_Convection_Term(*RHS_for_AB);
-    
+
   // LES self-similarity term
   if(parameters->turbulence) *RHS_for_AB -= *turbulence->tau;
 
@@ -156,70 +156,70 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   for(int i = imin; i <= imax; i++)
     for(int j = jmin; j <= jmax; j++)
       for(int k = kmin; k <= kmax; k++){
-	//D_12 and D_13
-	T visc_minus   = parameters->molecular_viscosity,
-	  visc_plus    = parameters->molecular_viscosity;
-	VECTOR_3D<T>  visc_term;
+        //D_12 and D_13
+        T visc_minus   = parameters->molecular_viscosity,
+          visc_plus    = parameters->molecular_viscosity;
+        VECTOR_3D<T>  visc_term;
         if(parameters->turbulence){
-	  visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			        (*turbulence->eddy_viscosity)(i-1,j,k) );
-	  visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                        (*turbulence->eddy_viscosity)(i+1,j,k) );
-	}
-	visc_term  = visc_plus * (*grid->G12)(i  ,j,k)*
-	  ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i+1,j+1,k) - (*u)(i+1,j-1,k));
-	          - visc_minus* (*grid->G12)(i-1,j,k)*
-	  ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i-1,j+1,k) - (*u)(i-1,j-1,k));
-	visc_term += visc_plus * (*grid->G13)(i  ,j,k)*
-	  ((*u)(i,j,k+1) - (*u)(i,j,k-1) + (*u)(i+1,j,k+1) - (*u)(i+1,j,k-1));
-	          - visc_minus* (*grid->G13)(i-1,j,k)*
-	  ((*u)(i,j,k+1) - (*u)(i,j,k+1) + (*u)(i-1,j,k+1) - (*u)(i-1,j,k-1));
+          visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i-1,j,k) );
+          visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i+1,j,k) );
+        }
+        visc_term  = visc_plus * (*grid->G12)(i  ,j,k)*
+          ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i+1,j+1,k) - (*u)(i+1,j-1,k));
+        - visc_minus* (*grid->G12)(i-1,j,k)*
+          ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i-1,j+1,k) - (*u)(i-1,j-1,k));
+        visc_term += visc_plus * (*grid->G13)(i  ,j,k)*
+          ((*u)(i,j,k+1) - (*u)(i,j,k-1) + (*u)(i+1,j,k+1) - (*u)(i+1,j,k-1));
+        - visc_minus* (*grid->G13)(i-1,j,k)*
+          ((*u)(i,j,k+1) - (*u)(i,j,k+1) + (*u)(i-1,j,k+1) - (*u)(i-1,j,k-1));
 
-	//D_23 and D_21
-	visc_minus = parameters->molecular_viscosity;
-	visc_plus  = parameters->molecular_viscosity;
+        //D_23 and D_21
+        visc_minus = parameters->molecular_viscosity;
+        visc_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			        (*turbulence->eddy_viscosity)(i,j-1,k) );
-	  visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                        (*turbulence->eddy_viscosity)(i,j+1,k) );
-	}
-	visc_term += visc_plus * (*grid->G23)(i,j  ,k)*
-	  ((*u)(i,j,k+1) - (*u)(i,j,k-1) + (*u)(i,j+1,k+1) - (*u)(i,j+1,k-1));
-	           - visc_minus* (*grid->G23)(i,j-1,k)*
-	  ((*u)(i,j,k+1) - (*u)(i,j,k-1) + (*u)(i,j-1,k+1) - (*u)(i,j-1,k-1));
-	visc_term += visc_plus * (*grid->G21)(i,j  ,k)*
-	  ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j+1,k) - (*u)(i-1,j+1,k));
-	           - visc_minus* (*grid->G21)(i,j-1,k)*
-	  ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j-1,k) - (*u)(i-1,j-1,k));
+          visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j-1,k) );
+          visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j+1,k) );
+        }
+        visc_term += visc_plus * (*grid->G23)(i,j  ,k)*
+          ((*u)(i,j,k+1) - (*u)(i,j,k-1) + (*u)(i,j+1,k+1) - (*u)(i,j+1,k-1));
+        - visc_minus* (*grid->G23)(i,j-1,k)*
+          ((*u)(i,j,k+1) - (*u)(i,j,k-1) + (*u)(i,j-1,k+1) - (*u)(i,j-1,k-1));
+        visc_term += visc_plus * (*grid->G21)(i,j  ,k)*
+          ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j+1,k) - (*u)(i-1,j+1,k));
+        - visc_minus* (*grid->G21)(i,j-1,k)*
+          ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j-1,k) - (*u)(i-1,j-1,k));
 
-	//D_31 and D_32
-	visc_minus = parameters->molecular_viscosity;
-	visc_plus  = parameters->molecular_viscosity;
+        //D_31 and D_32
+        visc_minus = parameters->molecular_viscosity;
+        visc_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			        (*turbulence->eddy_viscosity)(i,j,k-1) );
-	  visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                        (*turbulence->eddy_viscosity)(i,j,k+1) );
-	}
-	visc_term += visc_plus * (*grid->G31)(i,j,k  )*
-	  ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j,k+1) - (*u)(i-1,j,k+1));
-	           - visc_minus* (*grid->G31)(i,j,k-1)*
-	  ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j,k-1) - (*u)(i-1,j,k-1));
-	visc_term += visc_plus * (*grid->G32)(i,j,k  )*
-	  ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i,j+1,k+1) - (*u)(i,j-1,k+1));
-	           - visc_minus* (*grid->G32)(i,j,k-1)*
-	  ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i,j+1,k-1) - (*u)(i,j-1,k-1));
+          visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j,k-1) );
+          visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j,k+1) );
+        }
+        visc_term += visc_plus * (*grid->G31)(i,j,k  )*
+          ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j,k+1) - (*u)(i-1,j,k+1));
+        - visc_minus* (*grid->G31)(i,j,k-1)*
+          ((*u)(i+1,j,k) - (*u)(i-1,j,k) + (*u)(i+1,j,k-1) - (*u)(i-1,j,k-1));
+        visc_term += visc_plus * (*grid->G32)(i,j,k  )*
+          ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i,j+1,k+1) - (*u)(i,j-1,k+1));
+        - visc_minus* (*grid->G32)(i,j,k-1)*
+          ((*u)(i,j+1,k) - (*u)(i,j-1,k) + (*u)(i,j+1,k-1) - (*u)(i,j-1,k-1));
 
-	// add D_12+D_13+D_23+D_21+D_31+D_32 to RHS
+        // add D_12+D_13+D_23+D_21+D_31+D_32 to RHS
         (*RHS_for_AB)(i,j,k) += visc_term;
-  }
+      }
 
   // add Coriolis and buoyancy source terms
   if(parameters->scalar_advection)
     for(int i = imin; i <= imax; i++)
       for(int j = jmin; j <= jmax; j++)
-	      for(int k = kmin; k <= kmax; k++){
+        for(int k = kmin; k <= kmax; k++){
           assert((*grid->inverse_Jacobian)(i,j,k));
           T jacobian = (T)1 / (*grid->inverse_Jacobian)(i,j,k);
           // Coriolis terms
@@ -231,58 +231,58 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           //(*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
           //                        * ((*rho)(i,j,k) - scalar->Rho_Rest(i,j,k));
           (*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
-                                  * ((*(*phi)(1))(i,j,k) - scalar1->Rho_Rest(i,j,k));
+            * ((*(*phi)(1))(i,j,k) - scalar1->Rho_Rest(i,j,k));
 
-  }
+        }
   // adding Adams-Bashforth contribution for current time step
   // 'RHS_for_AB' is saved from this point until the next time step
- //RHS += leading_term_AB_coefficient * (*RHS_for_AB);
+  //RHS += leading_term_AB_coefficient * (*RHS_for_AB);
   for(int i = imin; i <= imax; i++)
     for(int j = jmin; j <= jmax; j++)
       for(int k = kmin; k <= kmax; k++)
-	RHS(i,j,k) += leading_term_AB_coefficient * (*RHS_for_AB)(i,j,k);
- 
+        RHS(i,j,k) += leading_term_AB_coefficient * (*RHS_for_AB)(i,j,k);
+
   // Diagonal viscous terms at time = n-1 discretized with Crank-Nicolson
   for(int i = imin; i <= imax; i++)
     for(int j = jmin; j <= jmax; j++)
       for(int k = kmin; k <= kmax; k++){
-	//D_11
-	T visc_minus   = parameters->molecular_viscosity,
-	  visc_plus    = parameters->molecular_viscosity;
-	VECTOR_3D<T>  visc_term;
+        //D_11
+        T visc_minus   = parameters->molecular_viscosity,
+          visc_plus    = parameters->molecular_viscosity;
+        VECTOR_3D<T>  visc_term;
         if(parameters->turbulence){
-	  visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			        (*turbulence->eddy_viscosity)(i-1,j,k) );
-	  visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                        (*turbulence->eddy_viscosity)(i+1,j,k) );
-	}
-	visc_term=visc_plus * (*grid->G11)(i  ,j,k)*((*u)(i+1,j,k)-(*u)(i,j,k))
-	        - visc_minus* (*grid->G11)(i-1,j,k)*((*u)(i,j,k)-(*u)(i-1,j,k));
-	//D_22
-	visc_minus = parameters->molecular_viscosity;
-	visc_plus  = parameters->molecular_viscosity;
+          visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i-1,j,k) );
+          visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i+1,j,k) );
+        }
+        visc_term=visc_plus * (*grid->G11)(i  ,j,k)*((*u)(i+1,j,k)-(*u)(i,j,k))
+          - visc_minus* (*grid->G11)(i-1,j,k)*((*u)(i,j,k)-(*u)(i-1,j,k));
+        //D_22
+        visc_minus = parameters->molecular_viscosity;
+        visc_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			        (*turbulence->eddy_viscosity)(i,j-1,k) );
-	  visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                        (*turbulence->eddy_viscosity)(i,j+1,k) );
-	}
-	visc_term+=visc_plus* (*grid->G22)(i,j  ,k)*((*u)(i,j+1,k)-(*u)(i,j,k))
-	        - visc_minus* (*grid->G22)(i,j-1,k)*((*u)(i,j,k)-(*u)(i,j-1,k));
-	//D_33
-	visc_minus = parameters->molecular_viscosity;
-	visc_plus  = parameters->molecular_viscosity;
+          visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j-1,k) );
+          visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j+1,k) );
+        }
+        visc_term+=visc_plus* (*grid->G22)(i,j  ,k)*((*u)(i,j+1,k)-(*u)(i,j,k))
+          - visc_minus* (*grid->G22)(i,j-1,k)*((*u)(i,j,k)-(*u)(i,j-1,k));
+        //D_33
+        visc_minus = parameters->molecular_viscosity;
+        visc_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			        (*turbulence->eddy_viscosity)(i,j,k-1) );
-	  visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                        (*turbulence->eddy_viscosity)(i,j,k+1) );
-	}
-	visc_term+=visc_plus* (*grid->G33)(i,j,k  )*((*u)(i,j,k+1)-(*u)(i,j,k))
-	        - visc_minus* (*grid->G33)(i,j,k-1)*((*u)(i,j,k)-(*u)(i,j,k-1));
-	// add D_11+D_22+D_33 to RHS
-	RHS(i,j,k) += visc_term;
-  }
+          visc_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j,k-1) );
+          visc_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i,j,k+1) );
+        }
+        visc_term+=visc_plus* (*grid->G33)(i,j,k  )*((*u)(i,j,k+1)-(*u)(i,j,k))
+          - visc_minus* (*grid->G33)(i,j,k-1)*((*u)(i,j,k)-(*u)(i,j,k-1));
+        // add D_11+D_22+D_33 to RHS
+        RHS(i,j,k) += visc_term;
+      }
 
   // Jacobian difference adjustment term for a moving grid (component-wise prod)
   if(parameters->moving_grid)
@@ -295,8 +295,8 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   for(int i = imin; i <= imax; i++)
     for(int j = jmin; j <= jmax; j++)
       for(int k = kmin; k <= kmax; k++)
-	RHS(i,j,k) *=  parameters->delta_time*(*grid->inverse_Jacobian)(i,j,k);
- 
+        RHS(i,j,k) *=  parameters->delta_time*(*grid->inverse_Jacobian)(i,j,k);
+
   /* END OF RHS ASSEMBLY */
 
   /* Solve 3 linear systems for momentum evolution eq.: M_i*M_j*M_k*x = RHS */
@@ -312,86 +312,86 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
     // Construct tridiagonal matrices A,B,C for LHS and F for RHS(of system)
     for(int j = jmin; j <= jmax; j++)
       for(int i = imin; i <= imax; i++){
-	T viscosity_minus = parameters->molecular_viscosity,
-	  viscosity_plus  = parameters->molecular_viscosity;
+        T viscosity_minus = parameters->molecular_viscosity,
+          viscosity_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  viscosity_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-			             (*turbulence->eddy_viscosity)(i-1,j,k) );
-	  viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
-	                             (*turbulence->eddy_viscosity)(i+1,j,k) );
-	}
-	(*A)(j,i) = - viscosity_minus * (T).5 * parameters->delta_time * 
-	            (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i-1,j,k);
-	(*C)(j,i) = - viscosity_plus  * (T).5 * parameters->delta_time * 
-	            (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i,j,k);
+          viscosity_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i-1,j,k) );
+          viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
+              (*turbulence->eddy_viscosity)(i+1,j,k) );
+        }
+        (*A)(j,i) = - viscosity_minus * (T).5 * parameters->delta_time * 
+          (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i-1,j,k);
+        (*C)(j,i) = - viscosity_plus  * (T).5 * parameters->delta_time * 
+          (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i,j,k);
         (*B)(j,i) = (T)1 - (*A)(j,i) - (*C)(j,i);
-	(*F)(j,i) = RHS(i,j,k);
+        (*F)(j,i) = RHS(i,j,k);
       }// for: j,i
     // Boundary conditions for I-direction: west
     if(mpi_driver->west_proc == MPI_PROC_NULL)
       for(int j = jmin; j <= jmax; j++){
-	(*A)(j,imin-1) = (T)0;	// imin-1 is 0 (in F code)
-	(*B)(j,imin-1) = (T)1;	// free-slip: u_0 = u_1
-	switch(parameters->west_bc){
-	  case FREE_SLIP: (*C)(j,imin-1) = (T)-1; break;
-	  case   NO_SLIP: (*C)(j,imin-1) = (T)1; break;
-	}
-	// RHS : BC west
-	T dP_dXI = (*P)(imin  ,j  ,k  ) - (*P)(imin-1,j  ,k  ),
-	  dP_dET = (*P)(imin-1,j+1,k  ) - (*P)(imin-1,j-1,k  ) + 
-	           (*P)(imin  ,j+1,k  ) - (*P)(imin  ,j-1,k  ),
- 	  dP_dZT = (*P)(imin-1,j  ,k+1) - (*P)(imin-1,j  ,k-1) + 
-                   (*P)(imin  ,j  ,k+1) - (*P)(imin  ,j  ,k-1);
-	T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(imin,j,k);
+        (*A)(j,imin-1) = (T)0;	// imin-1 is 0 (in F code)
+        (*B)(j,imin-1) = (T)1;	// free-slip: u_0 = u_1
+        switch(parameters->west_bc){
+          case FREE_SLIP: (*C)(j,imin-1) = (T)-1; break;
+          case   NO_SLIP: (*C)(j,imin-1) = (T)1; break;
+        }
+        // RHS : BC west
+        T dP_dXI = (*P)(imin  ,j  ,k  ) - (*P)(imin-1,j  ,k  ),
+          dP_dET = (*P)(imin-1,j+1,k  ) - (*P)(imin-1,j-1,k  ) + 
+            (*P)(imin  ,j+1,k  ) - (*P)(imin  ,j-1,k  ),
+          dP_dZT = (*P)(imin-1,j  ,k+1) - (*P)(imin-1,j  ,k-1) + 
+            (*P)(imin  ,j  ,k+1) - (*P)(imin  ,j  ,k-1);
+        T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(imin,j,k);
 
-	(*F)(j,imin-1).x = (*grid->XI_x)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
-	  (T).125*((*grid->ET_x)(imin,j-1,k)+(*grid->ET_x)(imin,j,k)) * dP_dET +
-	  (T).125*((*grid->ZT_x)(imin,j,k-1)+(*grid->ZT_x)(imin,j,k)) * dP_dZT;
-	(*F)(j,imin-1).y = (*grid->XI_y)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
-	  (T).125*((*grid->ET_y)(imin,j-1,k)+(*grid->ET_y)(imin,j,k)) * dP_dET +
-	  (T).125*((*grid->ZT_y)(imin,j,k-1)+(*grid->ZT_y)(imin,j,k)) * dP_dZT;
+        (*F)(j,imin-1).x = (*grid->XI_x)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
+          (T).125*((*grid->ET_x)(imin,j-1,k)+(*grid->ET_x)(imin,j,k)) * dP_dET +
+          (T).125*((*grid->ZT_x)(imin,j,k-1)+(*grid->ZT_x)(imin,j,k)) * dP_dZT;
+        (*F)(j,imin-1).y = (*grid->XI_y)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
+          (T).125*((*grid->ET_y)(imin,j-1,k)+(*grid->ET_y)(imin,j,k)) * dP_dET +
+          (T).125*((*grid->ZT_y)(imin,j,k-1)+(*grid->ZT_y)(imin,j,k)) * dP_dZT;
         (*F)(j,imin-1).z = (*grid->XI_z)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
-	  (T).125*((*grid->ET_z)(imin,j-1,k)+(*grid->ET_z)(imin,j,k)) * dP_dET +
-	  (T).125*((*grid->ZT_z)(imin,j,k-1)+(*grid->ZT_z)(imin,j,k)) * dP_dZT;
-	(*F)(j,imin-1) *= coeff;
-    }// west BC
+          (T).125*((*grid->ET_z)(imin,j-1,k)+(*grid->ET_z)(imin,j,k)) * dP_dET +
+          (T).125*((*grid->ZT_z)(imin,j,k-1)+(*grid->ZT_z)(imin,j,k)) * dP_dZT;
+        (*F)(j,imin-1) *= coeff;
+      }// west BC
     // Boundary conditions for I-direction: east
     if(mpi_driver->east_proc == MPI_PROC_NULL)
       for(int j = jmin; j <= jmax; j++){
-	switch(parameters->east_bc){
-	  case FREE_SLIP: (*A)(j,imax+1) = (T)-1; break;// free-slip: u_0 = u_1
-	  case   NO_SLIP: (*A)(j,imax+1) = (T)1;  break;
-	}
-	(*B)(j,imax+1) = (T)1;
-	(*C)(j,imax+1) = (T)0;
-	// RHS : BC east
-	T dP_dXI = (*P)(imax+1,j  ,k  ) - (*P)(imax  ,j  ,k  ),
-	  dP_dET = (*P)(imax  ,j+1,k  ) - (*P)(imax  ,j-1,k  ) + 
-	           (*P)(imax+1,j+1,k  ) - (*P)(imax+1,j-1,k  ),
- 	  dP_dZT = (*P)(imax  ,j  ,k+1) - (*P)(imax  ,j  ,k-1) + 
-                   (*P)(imax+1,j  ,k+1) - (*P)(imax+1,j  ,k-1);
-	T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(imax,j,k);
+        switch(parameters->east_bc){
+          case FREE_SLIP: (*A)(j,imax+1) = (T)-1; break;// free-slip: u_0 = u_1
+          case   NO_SLIP: (*A)(j,imax+1) = (T)1;  break;
+        }
+        (*B)(j,imax+1) = (T)1;
+        (*C)(j,imax+1) = (T)0;
+        // RHS : BC east
+        T dP_dXI = (*P)(imax+1,j  ,k  ) - (*P)(imax  ,j  ,k  ),
+          dP_dET = (*P)(imax  ,j+1,k  ) - (*P)(imax  ,j-1,k  ) + 
+            (*P)(imax+1,j+1,k  ) - (*P)(imax+1,j-1,k  ),
+          dP_dZT = (*P)(imax  ,j  ,k+1) - (*P)(imax  ,j  ,k-1) + 
+            (*P)(imax+1,j  ,k+1) - (*P)(imax+1,j  ,k-1);
+        T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(imax,j,k);
 
-	(*F)(j,imax+1).x =(*grid-> XI_x)(imax,j,k) * dP_dXI + 
-	  (T).125*((*grid->ET_x)(imax,j-1,k)+(*grid->ET_x)(imax,j,k)) * dP_dET +
-	  (T).125*((*grid->ZT_x)(imax,j,k-1)+(*grid->ZT_x)(imax,j,k)) * dP_dZT;
-	(*F)(j,imax+1).y = (*grid->XI_y)(imax,j,k) * dP_dXI + 
-	  (T).125*((*grid->ET_y)(imax,j-1,k)+(*grid->ET_y)(imax,j,k)) * dP_dET +
-	  (T).125*((*grid->ZT_y)(imax,j,k-1)+(*grid->ZT_y)(imax,j,k)) * dP_dZT;
-	(*F)(j,imax+1).z = (*grid->XI_z)(imax,j,k) * dP_dXI + 
-	  (T).125*((*grid->ET_z)(imax,j-1,k)+(*grid->ET_z)(imax,j,k)) * dP_dET +
-	  (T).125*((*grid->ZT_z)(imax,j,k-1)+(*grid->ZT_z)(imax,j,k)) * dP_dZT;
-	(*F)(j,imax+1) *= coeff;
-    }//east BC
+        (*F)(j,imax+1).x =(*grid-> XI_x)(imax,j,k) * dP_dXI + 
+          (T).125*((*grid->ET_x)(imax,j-1,k)+(*grid->ET_x)(imax,j,k)) * dP_dET +
+          (T).125*((*grid->ZT_x)(imax,j,k-1)+(*grid->ZT_x)(imax,j,k)) * dP_dZT;
+        (*F)(j,imax+1).y = (*grid->XI_y)(imax,j,k) * dP_dXI + 
+          (T).125*((*grid->ET_y)(imax,j-1,k)+(*grid->ET_y)(imax,j,k)) * dP_dET +
+          (T).125*((*grid->ZT_y)(imax,j,k-1)+(*grid->ZT_y)(imax,j,k)) * dP_dZT;
+        (*F)(j,imax+1).z = (*grid->XI_z)(imax,j,k) * dP_dXI + 
+          (T).125*((*grid->ET_z)(imax,j-1,k)+(*grid->ET_z)(imax,j,k)) * dP_dET +
+          (T).125*((*grid->ZT_z)(imax,j,k-1)+(*grid->ZT_z)(imax,j,k)) * dP_dZT;
+        (*F)(j,imax+1) *= coeff;
+      }//east BC
 
     //solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(*A, *B, *C, *F, 
-      parameters->periodic_in_x, mpi_driver->west_proc, mpi_driver->east_proc);
+        parameters->periodic_in_x, mpi_driver->west_proc, mpi_driver->east_proc);
 
     //solution of linear system is in F
     for(int j = jmin; j <= jmax; j++)
       for(int i = imin; i <= imax; i++)
-	RHS(i,j,k) = (*F)(j,i);
+        RHS(i,j,k) = (*F)(j,i);
   }//for: k
   delete A; delete B; delete C; delete F;
 
@@ -407,92 +407,92 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
     // Construct tridiagonal matrices A,B,C for LHS and F for RHS (of LinSys)
     for(int i = imin; i <= imax; i++)
       for(int j = jmin; j <= jmax; j++){
-	T viscosity_minus = parameters->molecular_viscosity,
-	  viscosity_plus  = parameters->molecular_viscosity;
+        T viscosity_minus = parameters->molecular_viscosity,
+          viscosity_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  viscosity_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j  ,k) + 
-			             (*turbulence->eddy_viscosity)(i,j-1,k) );
-	  viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j  ,k) + 
-	                             (*turbulence->eddy_viscosity)(i,j+1,k) );
-	}
-	(*A)(i,j) = - viscosity_minus * (T).5 * parameters->delta_time * 
-	            (*grid->inverse_Jacobian)(i,j,k) * (*grid->G22)(i,j-1,k);
-	(*C)(i,j) = - viscosity_plus  * (T).5 * parameters->delta_time * 
-	            (*grid->inverse_Jacobian)(i,j,k) * (*grid->G22)(i,j,k);
+          viscosity_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j  ,k) + 
+              (*turbulence->eddy_viscosity)(i,j-1,k) );
+          viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j  ,k) + 
+              (*turbulence->eddy_viscosity)(i,j+1,k) );
+        }
+        (*A)(i,j) = - viscosity_minus * (T).5 * parameters->delta_time * 
+          (*grid->inverse_Jacobian)(i,j,k) * (*grid->G22)(i,j-1,k);
+        (*C)(i,j) = - viscosity_plus  * (T).5 * parameters->delta_time * 
+          (*grid->inverse_Jacobian)(i,j,k) * (*grid->G22)(i,j,k);
         (*B)(i,j) = (T)1 - (*A)(i,j) - (*C)(i,j);
-	(*F)(i,j) = RHS(i,j,k);
+        (*F)(i,j) = RHS(i,j,k);
       }// for: i,j
     // Boundary conditions for J-direction: south
     if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
-	(*A)(i,jmin-1) = (T)0;	// jmin-1 is 0 (in F code)
-	(*B)(i,jmin-1) = (T)1;	// no-slip: u_0 = -u_1
-	switch(parameters->suth_bc){
-	  case FREE_SLIP: (*C)(i,jmin-1) = (T)-1; break;
-	  case   NO_SLIP: (*C)(i,jmin-1) = (T)1;  break; // no-slip: u_0 = -u_1
-	}
-	// RHS : south BC
-	T dP_dET = (*P)(i  ,jmin  ,k) - (*P)(i  ,jmin-1,k),
-	  dP_dXI = (*P)(i+1,jmin-1,k) - (*P)(i-1,jmin-1,k) + 
-  	           (*P)(i+1,jmin  ,k) - (*P)(i-1,jmin  ,k),
- 	  dP_dZT = (*P)(i,jmin-1,k+1) - (*P)(i,jmin-1,k-1) + 
-	           (*P)(i,jmin  ,k+1) - (*P)(i,jmin  ,k-1);
-	T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,jmin,k);
+        (*A)(i,jmin-1) = (T)0;	// jmin-1 is 0 (in F code)
+        (*B)(i,jmin-1) = (T)1;	// no-slip: u_0 = -u_1
+        switch(parameters->suth_bc){
+          case FREE_SLIP: (*C)(i,jmin-1) = (T)-1; break;
+          case   NO_SLIP: (*C)(i,jmin-1) = (T)1;  break; // no-slip: u_0 = -u_1
+        }
+        // RHS : south BC
+        T dP_dET = (*P)(i  ,jmin  ,k) - (*P)(i  ,jmin-1,k),
+          dP_dXI = (*P)(i+1,jmin-1,k) - (*P)(i-1,jmin-1,k) + 
+            (*P)(i+1,jmin  ,k) - (*P)(i-1,jmin  ,k),
+          dP_dZT = (*P)(i,jmin-1,k+1) - (*P)(i,jmin-1,k-1) + 
+            (*P)(i,jmin  ,k+1) - (*P)(i,jmin  ,k-1);
+        T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,jmin,k);
 
-	(*F)(i,jmin-1).x = 
-	  (T).125*((*grid->XI_x)(i-1,jmin,k)+(*grid->XI_x)(i,jmin,k)) * dP_dXI +
-	  /*jmin-1 or jmin?*/              (*grid->ET_x)(i,jmin-1,k)  * dP_dET +
-	  (T).125*((*grid->ZT_x)(i,jmin,k-1)+(*grid->ZT_x)(i,jmin,k)) * dP_dZT;
-	(*F)(i,jmin-1).y = 
-	  (T).125*((*grid->XI_y)(i-1,jmin,k)+(*grid->XI_y)(i,jmin,k)) * dP_dXI +
-	  /*jmin-1 or jmin?*/              (*grid->ET_y)(i,jmin-1,k)  * dP_dET +
-	  (T).125*((*grid->ZT_y)(i,jmin,k-1)+(*grid->ZT_y)(i,jmin,k)) * dP_dZT;
+        (*F)(i,jmin-1).x = 
+          (T).125*((*grid->XI_x)(i-1,jmin,k)+(*grid->XI_x)(i,jmin,k)) * dP_dXI +
+          /*jmin-1 or jmin?*/              (*grid->ET_x)(i,jmin-1,k)  * dP_dET +
+          (T).125*((*grid->ZT_x)(i,jmin,k-1)+(*grid->ZT_x)(i,jmin,k)) * dP_dZT;
+        (*F)(i,jmin-1).y = 
+          (T).125*((*grid->XI_y)(i-1,jmin,k)+(*grid->XI_y)(i,jmin,k)) * dP_dXI +
+          /*jmin-1 or jmin?*/              (*grid->ET_y)(i,jmin-1,k)  * dP_dET +
+          (T).125*((*grid->ZT_y)(i,jmin,k-1)+(*grid->ZT_y)(i,jmin,k)) * dP_dZT;
         (*F)(i,jmin-1).z = 
-	  (T).125*((*grid->XI_z)(i-1,jmin,k)+(*grid->XI_z)(i,jmin,k)) * dP_dXI +
-	  /*jmin-1 or jmin?*/              (*grid->ET_z)(i,jmin-1,k)  * dP_dET +
-	  (T).125*((*grid->ZT_z)(i,jmin,k-1)+(*grid->ZT_z)(i,jmin,k)) * dP_dZT;
-	(*F)(i,jmin-1) *= coeff;
-    }// suth BC
+          (T).125*((*grid->XI_z)(i-1,jmin,k)+(*grid->XI_z)(i,jmin,k)) * dP_dXI +
+          /*jmin-1 or jmin?*/              (*grid->ET_z)(i,jmin-1,k)  * dP_dET +
+          (T).125*((*grid->ZT_z)(i,jmin,k-1)+(*grid->ZT_z)(i,jmin,k)) * dP_dZT;
+        (*F)(i,jmin-1) *= coeff;
+      }// suth BC
     // Boundary conditions for J-direction: north
     if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
-	switch(parameters->nrth_bc){
-	  case FREE_SLIP: (*A)(i,jmax+1) = (T)-1; break; //free-slip:u_N = u_N+1
-	  case   NO_SLIP: (*A)(i,jmax+1) = (T)1;  break; 
-	}	
-	(*B)(i,jmax+1) = (T)1;
-	(*C)(i,jmax+1) = (T)0;
-	// RHS : BC
-	T dP_dET = (*P)(i  ,jmax+1,k  ) - (*P)(i  ,jmax  ,k  ),
-	  dP_dXI = (*P)(i+1,jmax  ,k  ) - (*P)(i-1,jmax  ,k  ) + 
-	           (*P)(i+1,jmax+1,k  ) - (*P)(i-1,jmax+1,k  ),
- 	  dP_dZT = (*P)(i  ,jmax  ,k+1) - (*P)(i  ,jmax  ,k-1) + 
-	           (*P)(i  ,jmax+1,k+1) - (*P)(i  ,jmax+1,k-1);
-	T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,jmax,k);
+        switch(parameters->nrth_bc){
+          case FREE_SLIP: (*A)(i,jmax+1) = (T)-1; break; //free-slip:u_N = u_N+1
+          case   NO_SLIP: (*A)(i,jmax+1) = (T)1;  break; 
+        }	
+        (*B)(i,jmax+1) = (T)1;
+        (*C)(i,jmax+1) = (T)0;
+        // RHS : BC
+        T dP_dET = (*P)(i  ,jmax+1,k  ) - (*P)(i  ,jmax  ,k  ),
+          dP_dXI = (*P)(i+1,jmax  ,k  ) - (*P)(i-1,jmax  ,k  ) + 
+            (*P)(i+1,jmax+1,k  ) - (*P)(i-1,jmax+1,k  ),
+          dP_dZT = (*P)(i  ,jmax  ,k+1) - (*P)(i  ,jmax  ,k-1) + 
+            (*P)(i  ,jmax+1,k+1) - (*P)(i  ,jmax+1,k-1);
+        T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,jmax,k);
 
-	(*F)(i,jmax+1).x =
-	  (T).125*((*grid->XI_x)(i-1,jmax,k)+(*grid->XI_x)(i,jmax,k)) * dP_dXI +
-	                                     (*grid->ET_x)(i,jmax,k)  * dP_dET +
-	  (T).125*((*grid->ZT_x)(i,jmax,k-1)+(*grid->ZT_x)(i,jmax,k)) * dP_dZT;
-	(*F)(i,jmax+1).y =
-	  (T).125*((*grid->XI_y)(i-1,jmax,k)+(*grid->XI_y)(i,jmax,k)) * dP_dXI +
-	                                     (*grid->ET_y)(i,jmax,k)  * dP_dET +
-	  (T).125*((*grid->ZT_y)(i,jmax,k-1)+(*grid->ZT_y)(i,jmax,k)) * dP_dZT;
-	(*F)(i,jmax+1).z =
-	  (T).125*((*grid->XI_z)(i-1,jmax,k)+(*grid->XI_z)(i,jmax,k)) * dP_dXI +
-	                                     (*grid->ET_z)(i,jmax,k)  * dP_dET +
-	  (T).125*((*grid->ZT_z)(i,jmax,k-1)+(*grid->ZT_z)(i,jmax,k)) * dP_dZT;
-	(*F)(i,jmax+1) *= coeff;
-    }//north BC
- 
+        (*F)(i,jmax+1).x =
+          (T).125*((*grid->XI_x)(i-1,jmax,k)+(*grid->XI_x)(i,jmax,k)) * dP_dXI +
+          (*grid->ET_x)(i,jmax,k)  * dP_dET +
+          (T).125*((*grid->ZT_x)(i,jmax,k-1)+(*grid->ZT_x)(i,jmax,k)) * dP_dZT;
+        (*F)(i,jmax+1).y =
+          (T).125*((*grid->XI_y)(i-1,jmax,k)+(*grid->XI_y)(i,jmax,k)) * dP_dXI +
+          (*grid->ET_y)(i,jmax,k)  * dP_dET +
+          (T).125*((*grid->ZT_y)(i,jmax,k-1)+(*grid->ZT_y)(i,jmax,k)) * dP_dZT;
+        (*F)(i,jmax+1).z =
+          (T).125*((*grid->XI_z)(i-1,jmax,k)+(*grid->XI_z)(i,jmax,k)) * dP_dXI +
+          (*grid->ET_z)(i,jmax,k)  * dP_dET +
+          (T).125*((*grid->ZT_z)(i,jmax,k-1)+(*grid->ZT_z)(i,jmax,k)) * dP_dZT;
+        (*F)(i,jmax+1) *= coeff;
+      }//north BC
+
     //solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(*A, *B, *C, *F, 
-      parameters->periodic_in_y, mpi_driver->suth_proc, mpi_driver->nrth_proc);
+        parameters->periodic_in_y, mpi_driver->suth_proc, mpi_driver->nrth_proc);
 
     //solution of linear system is in F
     for(int i = imin; i <= imax; i++)
       for(int j = jmin; j <= jmax; j++)
-	RHS(i,j,k) = (*F)(i,j);
+        RHS(i,j,k) = (*F)(i,j);
   }//for: k
   delete A; delete B; delete C; delete F;  
 
@@ -508,92 +508,92 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
     // Construct tridiagonal matrices A,B,C for LHS and F for RHS (of LinSys)
     for(int k = kmin; k <= kmax; k++)
       for(int i = imin; i <= imax; i++){
-	T viscosity_minus = parameters->molecular_viscosity,
-	  viscosity_plus  = parameters->molecular_viscosity;
+        T viscosity_minus = parameters->molecular_viscosity,
+          viscosity_plus  = parameters->molecular_viscosity;
         if(parameters->turbulence){
-	  viscosity_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k  ) + 
-			             (*turbulence->eddy_viscosity)(i,j,k-1) );
-	  viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k  ) + 
-	                             (*turbulence->eddy_viscosity)(i,j,k+1) );
-	}
-	(*A)(i,k) = - viscosity_minus * (T).5 * parameters->delta_time * 
-	            (*grid->inverse_Jacobian)(i,j,k) * (*grid->G33)(i,j,k-1);
-	(*C)(i,k) = - viscosity_plus  * (T).5 * parameters->delta_time * 
-	            (*grid->inverse_Jacobian)(i,j,k) * (*grid->G33)(i,j,k);
+          viscosity_minus += (T).5*( (*turbulence->eddy_viscosity)(i,j,k  ) + 
+              (*turbulence->eddy_viscosity)(i,j,k-1) );
+          viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k  ) + 
+              (*turbulence->eddy_viscosity)(i,j,k+1) );
+        }
+        (*A)(i,k) = - viscosity_minus * (T).5 * parameters->delta_time * 
+          (*grid->inverse_Jacobian)(i,j,k) * (*grid->G33)(i,j,k-1);
+        (*C)(i,k) = - viscosity_plus  * (T).5 * parameters->delta_time * 
+          (*grid->inverse_Jacobian)(i,j,k) * (*grid->G33)(i,j,k);
         (*B)(i,k) = (T)1 - (*A)(i,k) - (*C)(i,k);
-	(*F)(i,k) = RHS(i,j,k);
-    }// for: i,k
+        (*F)(i,k) = RHS(i,j,k);
+      }// for: i,k
     // Boundary conditions for K-direction: back
     if(mpi_driver->back_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
-	(*A)(i,kmin-1) = (T)0;	// kmin-1 is 0 (in F code)
-	(*B)(i,kmin-1) = (T)1;
-	switch(parameters->back_bc){
-	  case FREE_SLIP: (*C)(i,kmin-1) = (T)-1; break;// free-slip: u_0 = u_1
-	  case   NO_SLIP: (*C)(i,kmin-1) = (T)1;  break; 
-	}
-	// RHS : BC back
-	T dP_dZT = (*P)(i  ,j  ,kmin  ) - (*P)(i  ,j  ,kmin-1),
-	  dP_dXI = (*P)(i+1,j  ,kmin-1) - (*P)(i-1,j  ,kmin-1) + 
-  	           (*P)(i+1,j  ,kmin  ) - (*P)(i-1,j  ,kmin  ),
- 	  dP_dET = (*P)(i  ,j+1,kmin-1) - (*P)(i  ,j-1,kmin-1) + 
-	           (*P)(i  ,j+1,kmin  ) - (*P)(i  ,j-1,kmin  );
-	T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,kmin);
+        (*A)(i,kmin-1) = (T)0;	// kmin-1 is 0 (in F code)
+        (*B)(i,kmin-1) = (T)1;
+        switch(parameters->back_bc){
+          case FREE_SLIP: (*C)(i,kmin-1) = (T)-1; break;// free-slip: u_0 = u_1
+          case   NO_SLIP: (*C)(i,kmin-1) = (T)1;  break; 
+        }
+        // RHS : BC back
+        T dP_dZT = (*P)(i  ,j  ,kmin  ) - (*P)(i  ,j  ,kmin-1),
+          dP_dXI = (*P)(i+1,j  ,kmin-1) - (*P)(i-1,j  ,kmin-1) + 
+            (*P)(i+1,j  ,kmin  ) - (*P)(i-1,j  ,kmin  ),
+          dP_dET = (*P)(i  ,j+1,kmin-1) - (*P)(i  ,j-1,kmin-1) + 
+            (*P)(i  ,j+1,kmin  ) - (*P)(i  ,j-1,kmin  );
+        T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,kmin);
 
-	(*F)(i,kmin-1).x = 
-	  (T).125*((*grid->XI_x)(i-1,j,kmin)+(*grid->XI_x)(i,j,kmin)) * dP_dXI +
-	  (T).125*((*grid->ET_x)(i,j-1,kmin)+(*grid->ET_x)(i,j,kmin)) * dP_dET +
-	  /*kmin-1 or kmin ? */             (*grid->ZT_x)(i,j,kmin-1) * dP_dZT;
-	(*F)(i,kmin-1).y = 
-	  (T).125*((*grid->XI_y)(i-1,j,kmin)+(*grid->XI_y)(i,j,kmin)) * dP_dXI +
-	  (T).125*((*grid->ET_y)(i,j-1,kmin)+(*grid->ET_y)(i,j,kmin)) * dP_dET +
-	  /*kmin-1 or kmin ? */             (*grid->ZT_y)(i,j,kmin-1) * dP_dZT;
-	(*F)(i,kmin-1).z = 
-	  (T).125*((*grid->XI_z)(i-1,j,kmin)+(*grid->XI_z)(i,j,kmin)) * dP_dXI +
-	  (T).125*((*grid->ET_z)(i,j-1,kmin)+(*grid->ET_z)(i,j,kmin)) * dP_dET +
-	  /*kmin-1 or kmin ? */            (*grid->ZT_z)(i,j,kmin-1)  * dP_dZT;
-	(*F)(i,kmin-1) *= coeff;
-    }// back BC
+        (*F)(i,kmin-1).x = 
+          (T).125*((*grid->XI_x)(i-1,j,kmin)+(*grid->XI_x)(i,j,kmin)) * dP_dXI +
+          (T).125*((*grid->ET_x)(i,j-1,kmin)+(*grid->ET_x)(i,j,kmin)) * dP_dET +
+          /*kmin-1 or kmin ? */             (*grid->ZT_x)(i,j,kmin-1) * dP_dZT;
+        (*F)(i,kmin-1).y = 
+          (T).125*((*grid->XI_y)(i-1,j,kmin)+(*grid->XI_y)(i,j,kmin)) * dP_dXI +
+          (T).125*((*grid->ET_y)(i,j-1,kmin)+(*grid->ET_y)(i,j,kmin)) * dP_dET +
+          /*kmin-1 or kmin ? */             (*grid->ZT_y)(i,j,kmin-1) * dP_dZT;
+        (*F)(i,kmin-1).z = 
+          (T).125*((*grid->XI_z)(i-1,j,kmin)+(*grid->XI_z)(i,j,kmin)) * dP_dXI +
+          (T).125*((*grid->ET_z)(i,j-1,kmin)+(*grid->ET_z)(i,j,kmin)) * dP_dET +
+          /*kmin-1 or kmin ? */            (*grid->ZT_z)(i,j,kmin-1)  * dP_dZT;
+        (*F)(i,kmin-1) *= coeff;
+      }// back BC
     // Boundary conditions for K-direction: front
     if(mpi_driver->frnt_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
-	switch(parameters->frnt_bc){
-	  case FREE_SLIP: (*A)(i,kmax+1) = (T)-1; break;//free-slip: u_N = u_N+1
-	  case   NO_SLIP: (*A)(i,kmax+1) = (T)1;  break; 
-	}
-	(*B)(i,kmax+1) = (T)1;
-	(*C)(i,kmax+1) = (T)0;
-	// RHS : BC front
-	T dP_dZT = (*P)(i  ,j  ,kmax+1) - (*P)(i  ,j  ,kmax  ),
-	  dP_dXI = (*P)(i+1,j  ,kmax  ) - (*P)(i-1,j  ,kmax  ) + 
-  	           (*P)(i+1,j  ,kmax+1) - (*P)(i-1,j  ,kmax+1),
- 	  dP_dET = (*P)(i  ,j+1,kmax  ) - (*P)(i  ,j-1,kmax  ) + 
-	           (*P)(i  ,j+1,kmax+1) - (*P)(i  ,j-1,kmax+1);
-	T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,kmax);
+        switch(parameters->frnt_bc){
+          case FREE_SLIP: (*A)(i,kmax+1) = (T)-1; break;//free-slip: u_N = u_N+1
+          case   NO_SLIP: (*A)(i,kmax+1) = (T)1;  break; 
+        }
+        (*B)(i,kmax+1) = (T)1;
+        (*C)(i,kmax+1) = (T)0;
+        // RHS : BC front
+        T dP_dZT = (*P)(i  ,j  ,kmax+1) - (*P)(i  ,j  ,kmax  ),
+          dP_dXI = (*P)(i+1,j  ,kmax  ) - (*P)(i-1,j  ,kmax  ) + 
+            (*P)(i+1,j  ,kmax+1) - (*P)(i-1,j  ,kmax+1),
+          dP_dET = (*P)(i  ,j+1,kmax  ) - (*P)(i  ,j-1,kmax  ) + 
+            (*P)(i  ,j+1,kmax+1) - (*P)(i  ,j-1,kmax+1);
+        T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,kmax);
 
-	(*F)(i,kmax+1).x = 
-	  (T).125*((*grid->XI_x)(i-1,j,kmax)+(*grid->XI_x)(i,j,kmax)) * dP_dXI +
-	  (T).125*((*grid->ET_x)(i,j-1,kmax)+(*grid->ET_x)(i,j,kmax)) * dP_dET +
-	                                     (*grid->ZT_x)(i,j,kmax)  * dP_dZT;
-	(*F)(i,kmax+1).y = 
-	  (T).125*((*grid->XI_y)(i-1,j,kmax)+(*grid->XI_y)(i,j,kmax)) * dP_dXI +
-	  (T).125*((*grid->ET_y)(i,j-1,kmax)+(*grid->ET_y)(i,j,kmax)) * dP_dET +
-	                                     (*grid->ZT_y)(i,j,kmax)  * dP_dZT;
-	(*F)(i,kmax+1).z = 
-	  (T).125*((*grid->XI_z)(i-1,j,kmax)+(*grid->XI_z)(i,j,kmax)) * dP_dXI +
-	  (T).125*((*grid->ET_z)(i,j-1,kmax)+(*grid->ET_z)(i,j,kmax)) * dP_dET +
-	                                     (*grid->ZT_z)(i,j,kmax)  * dP_dZT;
-	(*F)(i,kmax+1) *= coeff;
-    }//front BC
+        (*F)(i,kmax+1).x = 
+          (T).125*((*grid->XI_x)(i-1,j,kmax)+(*grid->XI_x)(i,j,kmax)) * dP_dXI +
+          (T).125*((*grid->ET_x)(i,j-1,kmax)+(*grid->ET_x)(i,j,kmax)) * dP_dET +
+          (*grid->ZT_x)(i,j,kmax)  * dP_dZT;
+        (*F)(i,kmax+1).y = 
+          (T).125*((*grid->XI_y)(i-1,j,kmax)+(*grid->XI_y)(i,j,kmax)) * dP_dXI +
+          (T).125*((*grid->ET_y)(i,j-1,kmax)+(*grid->ET_y)(i,j,kmax)) * dP_dET +
+          (*grid->ZT_y)(i,j,kmax)  * dP_dZT;
+        (*F)(i,kmax+1).z = 
+          (T).125*((*grid->XI_z)(i-1,j,kmax)+(*grid->XI_z)(i,j,kmax)) * dP_dXI +
+          (T).125*((*grid->ET_z)(i,j-1,kmax)+(*grid->ET_z)(i,j,kmax)) * dP_dET +
+          (*grid->ZT_z)(i,j,kmax)  * dP_dZT;
+        (*F)(i,kmax+1) *= coeff;
+      }//front BC
 
     //solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(*A, *B, *C, *F, 
-      parameters->periodic_in_z, mpi_driver->back_proc, mpi_driver->frnt_proc);
+        parameters->periodic_in_z, mpi_driver->back_proc, mpi_driver->frnt_proc);
 
     //solution of linear system is in F
     for(int i = imin; i <= imax; i++)
       for(int k = kmin; k <= kmax; k++)
-	RHS(i,j,k) = (*F)(i,k);
+        RHS(i,j,k) = (*F)(i,k);
   }//for: k
   delete A; delete B; delete C; delete F;
 
@@ -603,7 +603,7 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   for(int i = imin; i <= imax; i++)
     for(int j = jmin; j <= jmax; j++)
       for(int k = kmin; k <= kmax; k++)
-	(*u)(i,j,k) += RHS(i,j,k);
+        (*u)(i,j,k) += RHS(i,j,k);
 
   // BCs for u*
   Linear_Extrapolate_Into_Halo_Regions(*u);
@@ -612,8 +612,6 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   // Swap halo regions among procs
   mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u);  
 
-  Set_Progressive_Wave_BC();
-
   convection1->Quick_Velocity_Flux_Update(*u); // Velocity fluxes on faces
 
   mpi_driver->Syncronize_All_Procs(); // Wait for all procs to finish
@@ -621,72 +619,76 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
 //*****************************************************************************
 // Intermediate velocity correction due to enforce incompressibility
 //*****************************************************************************
-template<class T>
+  template<class T>
 void NAVIER_STOKES_SOLVER<T>::Corrector()
 {
   // Correct velocity
   for(int i=grid->I_Min(); i<=grid->I_Max(); i++)
     for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
       for(int k=grid->K_Min(); k<=grid->K_Max(); k++) {
-	T P_east = (*P)(i+1,j,k) + (*P)(i,j,k), 
-	  P_west = (*P)(i-1,j,k) + (*P)(i,j,k),
-	  P_nrth = (*P)(i,j+1,k) + (*P)(i,j,k),
-	  P_suth = (*P)(i,j-1,k) + (*P)(i,j,k),
-	  P_frnt = (*P)(i,j,k+1) + (*P)(i,j,k),
-	  P_back = (*P)(i,j,k-1) + (*P)(i,j,k),
-	  coeff = (T).5*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,k);
-  
-	(*u)(i,j,k).x -= coeff * 
-           ( (*grid->XI_x)(i,j,k)*P_east - (*grid->XI_x)(i-1,j,k)*P_west
-           + (*grid->ET_x)(i,j,k)*P_nrth - (*grid->ET_x)(i,j-1,k)*P_suth
-	   + (*grid->ZT_x)(i,j,k)*P_frnt - (*grid->ZT_x)(i,j,k-1)*P_back );
+        T P_east = (*P)(i+1,j,k) + (*P)(i,j,k), 
+          P_west = (*P)(i-1,j,k) + (*P)(i,j,k),
+          P_nrth = (*P)(i,j+1,k) + (*P)(i,j,k),
+          P_suth = (*P)(i,j-1,k) + (*P)(i,j,k),
+          P_frnt = (*P)(i,j,k+1) + (*P)(i,j,k),
+          P_back = (*P)(i,j,k-1) + (*P)(i,j,k),
+          coeff = (T).5*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,k);
 
-	(*u)(i,j,k).y -= coeff * 
-           ( (*grid->XI_y)(i,j,k)*P_east - (*grid->XI_y)(i-1,j,k)*P_west
-           + (*grid->ET_y)(i,j,k)*P_nrth - (*grid->ET_y)(i,j-1,k)*P_suth
-	   + (*grid->ZT_y)(i,j,k)*P_frnt - (*grid->ZT_y)(i,j,k-1)*P_back );
+        (*u)(i,j,k).x -= coeff * 
+          ( (*grid->XI_x)(i,j,k)*P_east - (*grid->XI_x)(i-1,j,k)*P_west
+            + (*grid->ET_x)(i,j,k)*P_nrth - (*grid->ET_x)(i,j-1,k)*P_suth
+            + (*grid->ZT_x)(i,j,k)*P_frnt - (*grid->ZT_x)(i,j,k-1)*P_back );
 
-	(*u)(i,j,k).z -= coeff * 
-           ( (*grid->XI_z)(i,j,k)*P_east - (*grid->XI_z)(i-1,j,k)*P_west
-           + (*grid->ET_z)(i,j,k)*P_nrth - (*grid->ET_z)(i,j-1,k)*P_suth
-	   + (*grid->ZT_z)(i,j,k)*P_frnt - (*grid->ZT_z)(i,j,k-1)*P_back );
+        (*u)(i,j,k).y -= coeff * 
+          ( (*grid->XI_y)(i,j,k)*P_east - (*grid->XI_y)(i-1,j,k)*P_west
+            + (*grid->ET_y)(i,j,k)*P_nrth - (*grid->ET_y)(i,j-1,k)*P_suth
+            + (*grid->ZT_y)(i,j,k)*P_frnt - (*grid->ZT_y)(i,j,k-1)*P_back );
+
+        (*u)(i,j,k).z -= coeff * 
+          ( (*grid->XI_z)(i,j,k)*P_east - (*grid->XI_z)(i-1,j,k)*P_west
+            + (*grid->ET_z)(i,j,k)*P_nrth - (*grid->ET_z)(i,j-1,k)*P_suth
+            + (*grid->ZT_z)(i,j,k)*P_frnt - (*grid->ZT_z)(i,j,k-1)*P_back );
 
       }
+
   // Boundary Conditions and communication between processors
+  Set_Progressive_Wave_BC(parameters->time);
   Enforce_Velocity_BC(*u);
   mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u);
   int *lower_boundary = mpi_driver->local_grid_lower_bound,
       *upper_boundary = mpi_driver->local_grid_upper_bound;
+
   // Correct velocity fluxes on faces
   for(int i=lower_boundary[0]; i<=upper_boundary[0]; i++)
     for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
       for(int k=grid->K_Min(); k<=grid->K_Max(); k++) 
-	(*U_xi)(i,j,k) -= parameters->delta_time *
-	 ( (*grid->G11)(i,j,k)*((*P)(i+1,j  ,k  ) - (*P)(i  ,j  ,k  ))
-	  +(*grid->G12)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j-1,k  )
-			       +(*P)(i+1,j+1,k  ) - (*P)(i+1,j-1,k  ))
-	  +(*grid->G13)(i,j,k)*((*P)(i  ,j  ,k+1) - (*P)(i  ,j  ,k-1)
-			       +(*P)(i+1,j  ,k+1) - (*P)(i+1,j  ,k-1)) );
+        (*U_xi)(i,j,k) -= parameters->delta_time *
+          ( (*grid->G11)(i,j,k)*((*P)(i+1,j  ,k  ) - (*P)(i  ,j  ,k  ))
+            +(*grid->G12)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j-1,k  )
+              +(*P)(i+1,j+1,k  ) - (*P)(i+1,j-1,k  ))
+            +(*grid->G13)(i,j,k)*((*P)(i  ,j  ,k+1) - (*P)(i  ,j  ,k-1)
+              +(*P)(i+1,j  ,k+1) - (*P)(i+1,j  ,k-1)) );
 
   for(int i=grid->I_Min(); i<=grid->I_Max(); i++)
     for(int j=lower_boundary[1]; j<=upper_boundary[1]; j++)
       for(int k=grid->K_Min(); k<=grid->K_Max(); k++) 
-	(*U_et)(i,j,k) -= parameters->delta_time *
-	 ( (*grid->G22)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j  ,k  ))
-	  +(*grid->G23)(i,j,k)*((*P)(i  ,j  ,k+1) - (*P)(i  ,j  ,k-1)
-			       +(*P)(i  ,j+1,k+1) - (*P)(i  ,j+1,k-1))
-	  +(*grid->G21)(i,j,k)*((*P)(i+1,j  ,k  ) - (*P)(i-1,j  ,k  )
-			       +(*P)(i+1,j+1,k  ) - (*P)(i-1,j+1,k  )) );
+        (*U_et)(i,j,k) -= parameters->delta_time *
+          ( (*grid->G22)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j  ,k  ))
+            +(*grid->G23)(i,j,k)*((*P)(i  ,j  ,k+1) - (*P)(i  ,j  ,k-1)
+              +(*P)(i  ,j+1,k+1) - (*P)(i  ,j+1,k-1))
+            +(*grid->G21)(i,j,k)*((*P)(i+1,j  ,k  ) - (*P)(i-1,j  ,k  )
+              +(*P)(i+1,j+1,k  ) - (*P)(i-1,j+1,k  )) );
 
   for(int i=grid->I_Min(); i<=grid->I_Max(); i++)
     for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
       for(int k=lower_boundary[2]; k<=upper_boundary[2]; k++)
-	(*U_zt)(i,j,k) -= parameters->delta_time *
-	 ( (*grid->G33)(i,j,k)*((*P)(i  ,j  ,k+1) - (*P)(i  ,j  ,k  ))
-	  +(*grid->G31)(i,j,k)*((*P)(i+1,j  ,k  ) - (*P)(i-1,j  ,k  )
-			       +(*P)(i+1,j  ,k+1) - (*P)(i-1,j  ,k+1))
-	  +(*grid->G32)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j-1,k  )
-			       +(*P)(i  ,j+1,k+1) - (*P)(i  ,j-1,k+1)) );
+        (*U_zt)(i,j,k) -= parameters->delta_time *
+          ( (*grid->G33)(i,j,k)*((*P)(i  ,j  ,k+1) - (*P)(i  ,j  ,k  ))
+            +(*grid->G31)(i,j,k)*((*P)(i+1,j  ,k  ) - (*P)(i-1,j  ,k  )
+              +(*P)(i+1,j  ,k+1) - (*P)(i-1,j  ,k+1))
+            +(*grid->G32)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j-1,k  )
+              +(*P)(i  ,j+1,k+1) - (*P)(i  ,j-1,k+1)) );
+
   // Wait for all procs to finish
   mpi_driver->Syncronize_All_Procs();
 }
@@ -694,9 +696,9 @@ void NAVIER_STOKES_SOLVER<T>::Corrector()
 // Extrapolating (linear with 3pts) vector field into the Halo regions
 // Extrapolation rule for 3 directions: (0)<-(1,2,3), (-1)<-(0,1,2)
 //*****************************************************************************
-template<class T>
+  template<class T>
 void NAVIER_STOKES_SOLVER<T>::Linear_Extrapolate_Into_Halo_Regions(
-                                                   ARRAY_3D<VECTOR_3D<T> >& u)
+    ARRAY_3D<VECTOR_3D<T> >& u)
 {
   assert(u.Halo_Size() == 2);
   int xmin = u.I_Min(), xmax = u.I_Max(), ymin = u.J_Min(), ymax = u.J_Max(),
@@ -705,49 +707,49 @@ void NAVIER_STOKES_SOLVER<T>::Linear_Extrapolate_Into_Halo_Regions(
   if(mpi_driver->west_proc == MPI_PROC_NULL)
     for(int j = ymin-halo; j <= ymax+halo; j++)
       for(int k = zmin-halo; k <= zmax+halo; k++){
-	u(xmin-1,j,k) = (T)3*(u(xmin,j,k)-u(xmin+1,j,k)) + u(xmin+2,j,k);
+        u(xmin-1,j,k) = (T)3*(u(xmin,j,k)-u(xmin+1,j,k)) + u(xmin+2,j,k);
         u(xmin-2,j,k) = (T)3*(u(xmin-1,j,k)-u(xmin,j,k)) + u(xmin+1,j,k);   
-  }
+      }
 
   if(mpi_driver->east_proc == MPI_PROC_NULL)
     for(int j = ymin-halo; j <= ymax+halo; j++)
       for(int k = zmin-halo; k <= zmax+halo; k++){
-	u(xmax+1,j,k) = (T)3*(u(xmax,j,k)-u(xmax-1,j,k)) + u(xmax-2,j,k);
-	u(xmax+2,j,k) = (T)3*(u(xmax+1,j,k)-u(xmax,j,k)) + u(xmax-1,j,k);  
-  }
+        u(xmax+1,j,k) = (T)3*(u(xmax,j,k)-u(xmax-1,j,k)) + u(xmax-2,j,k);
+        u(xmax+2,j,k) = (T)3*(u(xmax+1,j,k)-u(xmax,j,k)) + u(xmax-1,j,k);  
+      }
 
   if(mpi_driver->suth_proc == MPI_PROC_NULL)
-   for(int i = xmin-halo; i <= xmax+halo; i++)
+    for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int k = zmin-halo; k <= zmax+halo; k++){
-	u(i,ymin-1,k) = (T)3*(u(i,ymin,k)-u(i,ymin+1,k)) + u(i,ymin+2,k);
-	u(i,ymin-2,k) = (T)3*(u(i,ymin-1,k)-u(i,ymin,k)) + u(i,ymin+1,k);   
-  }
+        u(i,ymin-1,k) = (T)3*(u(i,ymin,k)-u(i,ymin+1,k)) + u(i,ymin+2,k);
+        u(i,ymin-2,k) = (T)3*(u(i,ymin-1,k)-u(i,ymin,k)) + u(i,ymin+1,k);   
+      }
 
   if(mpi_driver->nrth_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int k = zmin-halo; k <= zmax+halo; k++){
-	u(i,ymax+1,k) = (T)3*(u(i,ymax,k)-u(i,ymax-1,k)) + u(i,ymax-2,k);
-	u(i,ymax+2,k) = (T)3*(u(i,ymax+1,k)-u(i,ymax,k)) + u(i,ymax-1,k); 
-  }
+        u(i,ymax+1,k) = (T)3*(u(i,ymax,k)-u(i,ymax-1,k)) + u(i,ymax-2,k);
+        u(i,ymax+2,k) = (T)3*(u(i,ymax+1,k)-u(i,ymax,k)) + u(i,ymax-1,k); 
+      }
 
   if(mpi_driver->back_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int j = ymin-halo; j <= ymax+halo; j++){
-	u(i,j,zmin-1) = (T)3*(u(i,j,zmin)-u(i,j,zmin+1)) + u(i,j,zmin+2);
-	u(i,j,zmin-2) = (T)3*(u(i,j,zmin-1)-u(i,j,zmin)) + u(i,j,zmin+1);  
-  }
+        u(i,j,zmin-1) = (T)3*(u(i,j,zmin)-u(i,j,zmin+1)) + u(i,j,zmin+2);
+        u(i,j,zmin-2) = (T)3*(u(i,j,zmin-1)-u(i,j,zmin)) + u(i,j,zmin+1);  
+      }
 
   if(mpi_driver->frnt_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int j = ymin-halo; j <= ymax+halo; j++){
-	u(i,j,zmax+1) = (T)3*(u(i,j,zmax)-u(i,j,zmax-1)) + u(i,j,zmax-2);
-	u(i,j,zmax+2) = (T)3*(u(i,j,zmax+1)-u(i,j,zmax)) + u(i,j,zmax-1);     
-  }
+        u(i,j,zmax+1) = (T)3*(u(i,j,zmax)-u(i,j,zmax-1)) + u(i,j,zmax-2);
+        u(i,j,zmax+2) = (T)3*(u(i,j,zmax+1)-u(i,j,zmax)) + u(i,j,zmax-1);     
+      }
 }
 //*****************************************************************************
 // Global velocity BC
 //*****************************************************************************
-template<class T>
+  template<class T>
 void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
 {
   // BC: Top
@@ -804,7 +806,7 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
             case   NO_SLIP: u(u.I_Min()-1,j,k) = - u(u.I_Min(),j,k); break; 
           }
         u(u.I_Min()-2,j,k) = (T)3 * (u(u.I_Min()-1,j,k) - u(u.I_Min(),j,k))
-            +  u(u.I_Min()+1,j,k);
+          +  u(u.I_Min()+1,j,k);
       }
   // BC: Right
   if(mpi_driver->east_proc == MPI_PROC_NULL)
@@ -844,7 +846,7 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
 // Calculates of CFL for the current time step and updates 'max_cfl'
 // Note: value of CFL cannot get above 'critical_cfl'
 //*****************************************************************************
-template<class T> 
+  template<class T> 
 T NAVIER_STOKES_SOLVER<T>::Calculate_CFL()
 {
   T cfl = (T)0;
@@ -852,27 +854,27 @@ T NAVIER_STOKES_SOLVER<T>::Calculate_CFL()
   for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
-	T cell_cfl;
-	if(parameters->moving_grid)
-	  cell_cfl = 
-               fabs( (*U_xi)(i-1,j,k)
-                   - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_xi)(i-1,j,k)
-		   + (*U_xi)(i,j,k)
-		   - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_xi)(i,j,k) )
-	     + fabs( (*U_et)(i,j-1,k)
-                   - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_et)(i,j-1,k)
-		   + (*U_et)(i,j,k)
- 	           - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_et)(i,j,k) )
-	     + fabs( (*U_zt)(i,j,k-1) 
-                   - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_zt)(i,j,k-1)
-		   + (*U_zt)(i,j,k)
-                   - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_zt)(i,j,k) );
-	else
-	  cell_cfl = fabs((*U_xi)(i-1,j,k) + (*U_xi)(i,j,k)) +
-	             fabs((*U_et)(i,j-1,k) + (*U_et)(i,j,k)) +
-	             fabs((*U_zt)(i,j,k-1) + (*U_zt)(i,j,k));
-	cell_cfl *= (*grid->inverse_Jacobian)(i,j,k);
-	cfl = fmax(cfl, fabs(cell_cfl));
+        T cell_cfl;
+        if(parameters->moving_grid)
+          cell_cfl = 
+            fabs( (*U_xi)(i-1,j,k)
+                - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_xi)(i-1,j,k)
+                + (*U_xi)(i,j,k)
+                - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_xi)(i,j,k) )
+            + fabs( (*U_et)(i,j-1,k)
+                - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_et)(i,j-1,k)
+                + (*U_et)(i,j,k)
+                - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_et)(i,j,k) )
+            + fabs( (*U_zt)(i,j,k-1) 
+                - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_zt)(i,j,k-1)
+                + (*U_zt)(i,j,k)
+                - (*((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_zt)(i,j,k) );
+        else
+          cell_cfl = fabs((*U_xi)(i-1,j,k) + (*U_xi)(i,j,k)) +
+            fabs((*U_et)(i,j-1,k) + (*U_et)(i,j,k)) +
+            fabs((*U_zt)(i,j,k-1) + (*U_zt)(i,j,k));
+        cell_cfl *= (*grid->inverse_Jacobian)(i,j,k);
+        cfl = fmax(cfl, fabs(cell_cfl));
       }
   cfl *= (T).5 * parameters->delta_time; // .5 is taken outside of for-loops
 
@@ -886,25 +888,25 @@ T NAVIER_STOKES_SOLVER<T>::Calculate_CFL()
 //*****************************************************************************
 // Adds a forcing term associated with the Pressue Gradient (+ perturbation)
 //*****************************************************************************
-template<class T> 
+  template<class T> 
 void NAVIER_STOKES_SOLVER<T>::Add_Pressure_Gradient_Term(
-                                                ARRAY_3D<VECTOR_3D<T> >& RHS)
+    ARRAY_3D<VECTOR_3D<T> >& RHS)
 {
   T omega = parameters->freq_p_grad,
     P0 = parameters->amp_p_grad*omega*omega;
   for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
-	assert((*grid->inverse_Jacobian)(i,j,k));
-	RHS(i,j,k)   += (*parameters->pressure_gradient);
-	//RHS(i,j,k).z += P0*cos(omega*parameters->time); //perturbation
-	RHS(i,j,k)   /= (*grid->inverse_Jacobian)(i,j,k);
+        assert((*grid->inverse_Jacobian)(i,j,k));
+        RHS(i,j,k)   += (*parameters->pressure_gradient);
+        //RHS(i,j,k).z += P0*cos(omega*parameters->time); //perturbation
+        RHS(i,j,k)   /= (*grid->inverse_Jacobian)(i,j,k);
       }
 }
 //*****************************************************************************
 // Saving data aggregaged on Proc #0
 //*****************************************************************************
-template<class T>
+  template<class T>
 void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
 {
   if(parameters->time_step==0)
@@ -915,10 +917,10 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
     mpi_driver->Write_Global_Array_To_Disk("pressure",*P,parameters->time_step);
   if(parameters->scalar_advection){
     mpi_driver->Write_Global_Array_To_Disk("density", *(*phi)(1), 
-					                 parameters->time_step);
+        parameters->time_step);
     if(parameters->num_scalars == 2)
       mpi_driver->Write_Global_Array_To_Disk("scalar", *(*phi)(2), 
-					                 parameters->time_step);
+          parameters->time_step);
     if(parameters->potential_energy) potential_energy->Write_To_Disk();
   }  
   if(parameters->aggregate_data) data_aggregator->Write_To_Disk();
@@ -930,17 +932,17 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   if(parameters->moving_grid){
     if(parameters->time_step) //for ts=0, already saved
       mpi_driver->Write_Global_Array_To_Disk("node_position", *grid->grid,
-                                                         parameters->time_step);
+          parameters->time_step);
     mpi_driver->Write_Global_Array_To_Disk("u_grid_xi", 
-         *((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_xi,parameters->time_step);
+        *((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_xi,parameters->time_step);
     mpi_driver->Write_Global_Array_To_Disk("u_grid_et", 
-         *((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_et,parameters->time_step);
+        *((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_et,parameters->time_step);
     mpi_driver->Write_Global_Array_To_Disk("u_grid_zt", 
-         *((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_zt,parameters->time_step);
+        *((CURVILINEAR_MOVING_GRID<T>*)grid)->U_grid_zt,parameters->time_step);
     mpi_driver->Write_Global_Array_To_Disk("jac_diff", 
-     *((CURVILINEAR_MOVING_GRID<T>*)grid)->Jacobian_diff,parameters->time_step);
+        *((CURVILINEAR_MOVING_GRID<T>*)grid)->Jacobian_diff,parameters->time_step);
     mpi_driver->Write_Global_Array_To_Disk("inverse_jacobian", 
-			         *grid->inverse_Jacobian,parameters->time_step);
+        *grid->inverse_Jacobian,parameters->time_step);
     ((CURVILINEAR_MOVING_GRID<T>*)grid)->Write_Volume_Evolution_To_Disk();
   }
   //if(parameters->time_step==0){
@@ -951,12 +953,12 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
 //*****************************************************************************
 // Saving binary restart data to output directory for each proc
 //*****************************************************************************
-template<class T>
+  template<class T>
 int NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data_For_Restart()
 {
   stringstream filename;
   filename << parameters->output_dir << "restart_t" 
-           << parameters->time_step<< "."<< mpi_driver->my_rank;
+    << parameters->time_step<< "."<< mpi_driver->my_rank;
 
   ofstream output(filename.str().c_str(), ios::out | ios::binary);
   if(!output){
@@ -982,12 +984,12 @@ int NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data_For_Restart()
 //*****************************************************************************
 // Loading binary restart data from ./restart directory for each proc
 //*****************************************************************************
-template<class T>
+  template<class T>
 int NAVIER_STOKES_SOLVER<T>::Load_Simulation_Data_For_Restart(int restart_ts)
 {
   stringstream filename;
   filename << parameters->output_dir << "restart_t" 
-           << restart_ts<< "."<< mpi_driver->my_rank;
+    << restart_ts<< "."<< mpi_driver->my_rank;
   ifstream input(filename.str().c_str(), ios::in | ios::binary);
   if(!input){
     cout<<"ERROR: could not open RESTART file for reading"<<endl;
@@ -1010,56 +1012,56 @@ int NAVIER_STOKES_SOLVER<T>::Load_Simulation_Data_For_Restart(int restart_ts)
 //*****************************************************************************
 // Set initial conditions for physical variables (u and rho)
 //*****************************************************************************
-template<class T> 
+  template<class T> 
 void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
 {
   //set Velocity profile
   //KH billows example
   /*
-  for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){	
-	      T lambda = (T).25 * parameters->x_length,
-	      k_lambda = (T)2 * parameters->pi / lambda,
-	      zeta = (T).001 * sin( k_lambda * (*grid)(i,j,k).x ),
-	      temp = tanh( ((*grid)(i,j,k).y - parameters->y_length/2. + zeta)
-		     /(4.*parameters->y_length/parameters->num_total_nodes_y) );
-	      (*u)(i,j,k) = VECTOR_3D<T>(temp,(T)0,(T)0);
-        (*rho)(i,j,k) = temp;
-  }
-  convection->Quick_Velocity_Flux_Update(*u); // velocity fluxes on faces
-  */
+     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
+     for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+     for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){	
+     T lambda = (T).25 * parameters->x_length,
+     k_lambda = (T)2 * parameters->pi / lambda,
+     zeta = (T).001 * sin( k_lambda * (*grid)(i,j,k).x ),
+     temp = tanh( ((*grid)(i,j,k).y - parameters->y_length/2. + zeta)
+     /(4.*parameters->y_length/parameters->num_total_nodes_y) );
+     (*u)(i,j,k) = VECTOR_3D<T>(temp,(T)0,(T)0);
+     (*rho)(i,j,k) = temp;
+     }
+     convection->Quick_Velocity_Flux_Update(*u); // velocity fluxes on faces
+     */
 
   /*
   //set initial Density profile
   //Lock-exchange example
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-	    for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++)
-	      if( abs((*grid)(i,j,k).x) < (T).5*parameters->x_length ) 
-	         (*rho)(i,j,k) = (T).0005;
-	      else (*rho)(i,j,k) = (T)-.0005;
+  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++)
+  if( abs((*grid)(i,j,k).x) < (T).5*parameters->x_length ) 
+  (*rho)(i,j,k) = (T).0005;
+  else (*rho)(i,j,k) = (T)-.0005;
   */
 
   /*
   //Sloshing wave example
   //if(parameters->scalar_advection) scalar->Set_Initial_Density_Profile();
   if(parameters->scalar_advection)
-    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-       	for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
-	        if( abs((*grid)(i,j,k).x) > (T).45*parameters->x_length && 
-	            abs((*grid)(i,j,k).x) < (T).55*parameters->x_length &&
-	            abs((*grid)(i,j,k).y) > (T).45*parameters->y_length && 
-	            abs((*grid)(i,j,k).y) < (T).55*parameters->y_length) 
-	          (*rho)(i,j,k) = (T).0005;
-	        else (*rho)(i,j,k) = (T)-.0005;
-	        if( i==grid->I_Max() && 
-	            abs((*grid)(i,j,k).y) > (T).65*parameters->y_length && 
-	            abs((*grid)(i,j,k).y) < (T).75*parameters->y_length)
-	          (*rho)(i,j,k) = (T).0005;
-	        //(*u)(i,j,k) = VECTOR_3D<T>(1.,(T)0,(T)0);
-	}
+  for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
+  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
+  if( abs((*grid)(i,j,k).x) > (T).45*parameters->x_length && 
+  abs((*grid)(i,j,k).x) < (T).55*parameters->x_length &&
+  abs((*grid)(i,j,k).y) > (T).45*parameters->y_length && 
+  abs((*grid)(i,j,k).y) < (T).55*parameters->y_length) 
+  (*rho)(i,j,k) = (T).0005;
+  else (*rho)(i,j,k) = (T)-.0005;
+  if( i==grid->I_Max() && 
+  abs((*grid)(i,j,k).y) > (T).65*parameters->y_length && 
+  abs((*grid)(i,j,k).y) < (T).75*parameters->y_length)
+  (*rho)(i,j,k) = (T).0005;
+  //(*u)(i,j,k) = VECTOR_3D<T>(1.,(T)0,(T)0);
+  }
   */
 
   /*
@@ -1068,114 +1070,114 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   T kappa = .41;
   T u_star = .005;
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-    for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
-      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
-	    //(*u)(i,j,k).x = .1 * sqrt(1.+(*grid)(i,j,k).y/parameters->y_length);
-	      T d = parameters->depth ? (*parameters->depth)(i,k) 
-                                : parameters->y_length;
-	    //  if((*grid)(i,j,k).y+d <= (T)0)
-	      //  (*u)(i,j,k).x = 0.;
-      	//else
-	        (*u)(i,j,k).x = u_star/kappa * log(9. * u_star
-				                  * ((*grid)(i,j,k).y+d)
-                          / parameters->molecular_viscosity);
-	       // (*u)(i,j,k)  += .05 * (*u)(i,j,k).x * rand() / (T)RAND_MAX;
-      }
-  */
+  for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
+  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
+//(*u)(i,j,k).x = .1 * sqrt(1.+(*grid)(i,j,k).y/parameters->y_length);
+T d = parameters->depth ? (*parameters->depth)(i,k) 
+: parameters->y_length;
+//  if((*grid)(i,j,k).y+d <= (T)0)
+//  (*u)(i,j,k).x = 0.;
+//else
+(*u)(i,j,k).x = u_star/kappa * log(9. * u_star
+   * ((*grid)(i,j,k).y+d)
+   / parameters->molecular_viscosity);
+// (*u)(i,j,k)  += .05 * (*u)(i,j,k).x * rand() / (T)RAND_MAX;
+}
+*/
 
-  //Variable depth channel example
-  //if(parameters->scalar_advection) scalar->Set_Uniform_Density_Profile((T)1);
-  
-  //Bobby's cases
-  //Set velocity and stratification
-  T alpha = .99;
-  T delta = .03;
-  T ratio = .03; //delta_rho/rho_0
-  T rho0 = 1000.;
-  T delta_rho = ratio*rho0;  
-  T a = .15;
-  T Lw = 1./sqrt(3.);
-  T zeta;
+//Variable depth channel example
+//if(parameters->scalar_advection) scalar->Set_Uniform_Density_Profile((T)1);
 
-  if(parameters->scalar_advection) {
-    /*
-    //Single Solitary wave 
-    //density
-    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-        for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-           zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-           (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
-                 0.5*parameters->y_length)/delta*atanh(alpha));           
-         }
-      }
-    }
-    */
-    //Progressive wave 
-    //density
-    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-        for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-           (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y + 
-                 0.5*parameters->y_length)/delta*atanh(alpha));           
-         }
-      }
-    }
-    //passive scalar
-    if(parameters->num_scalars == 2){
-      for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-        for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-          for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-            if(((*grid)(i,j,k).x > 1.75) && ((*grid)(i,j,k).x < 2.25))
-              (*(*phi)(2))(i,j,k) = 1.;
-          }
-        }
-      }
-    }
-  }
+//Bobby's cases
+//Set velocity and stratification
+T alpha = .99;
+T delta = .03;
+T ratio = .03; //delta_rho/rho_0
+T rho0 = 1000.;
+T delta_rho = ratio*rho0;  
+T a = .15;
+T Lw = 1./sqrt(3.);
+T zeta;
 
+if(parameters->scalar_advection) {
   /*
-  T alpha = .99;
-  T delta = .03;
-  T ratio = .03; //delta_rho/rho_0
-  T rho0 = 1000.;
-  T delta_rho = ratio*rho0;  
-  T a = .025;
-  T Lw = 0.05;
-  T zeta;
-
-  if(parameters->scalar_advection) {
+  //Single Solitary wave 
+  //density
+  for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+  zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
+  (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
+  0.5*parameters->y_length)/delta*atanh(alpha));           
+  }
+  }
+  }
+  */
+  //Progressive wave 
+  //density
+  for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+        (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y + 
+              0.5*parameters->y_length)/delta*atanh(alpha));           
+      }
+    }
+  }
+  //passive scalar
+  if(parameters->num_scalars == 2){
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-           zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-           (*rho)(i,j,k) = -.5*delta_rho*tanh(2.*((*grid)(i,j,k).y - zeta + 
-                 0.5*parameters->y_length)/delta*atanh(alpha));           
-           //(*u)(i,j,k).x = .1;
+          if(((*grid)(i,j,k).x > 1.75) && ((*grid)(i,j,k).x < 2.25))
+            (*(*phi)(2))(i,j,k) = 1.;
         }
       }
     }
   }
-  */
+}
 
-  //POSTPROCESS: enforce BCs and populate ghost cells
-  assert(mpi_driver);
-  Set_Progressive_Wave_BC();
-  Enforce_Velocity_BC(*u);  
-  mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u); 
+/*
+   T alpha = .99;
+   T delta = .03;
+   T ratio = .03; //delta_rho/rho_0
+   T rho0 = 1000.;
+   T delta_rho = ratio*rho0;  
+   T a = .025;
+   T Lw = 0.05;
+   T zeta;
+
+   if(parameters->scalar_advection) {
+   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+   for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+   for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+   zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
+   (*rho)(i,j,k) = -.5*delta_rho*tanh(2.*((*grid)(i,j,k).y - zeta + 
+   0.5*parameters->y_length)/delta*atanh(alpha));           
+//(*u)(i,j,k).x = .1;
+}
+}
+}
+}
+*/
+
+//POSTPROCESS: enforce BCs and populate ghost cells
+assert(mpi_driver);
+Set_Progressive_Wave_BC(parameters->time);
+Enforce_Velocity_BC(*u);  
+mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u); 
 }
 //*****************************************************************************
 // Set progressive wave BC
 //*****************************************************************************
-template<class T> 
-void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC()
+  template<class T> 
+void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC(T time)
 {
   if(parameters->west_velocity)
-    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) 
-        (*(parameters->west_velocity))(j,k).x = 
+    for(int j=parameters->j_min_w_h; j<=parameters->j_max_w_h; j++)
+      for(int k=parameters->k_min_w_h; k<=parameters->k_max_w_h; k++) 
+        (*parameters->west_velocity)(j,k).x = 
           -parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y)
-          *sin(parameters->freq*parameters->time);
+                                  *sin(parameters->freq*time);
 } 
 //*****************************************************************************
 template class NAVIER_STOKES_SOLVER<double>;
