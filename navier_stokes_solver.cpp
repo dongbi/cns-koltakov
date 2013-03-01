@@ -701,6 +701,7 @@ void NAVIER_STOKES_SOLVER<T>::Corrector()
             +(*grid->G32)(i,j,k)*((*P)(i  ,j+1,k  ) - (*P)(i  ,j-1,k  )
               +(*P)(i  ,j+1,k+1) - (*P)(i  ,j-1,k+1)) );
 
+  /*
   //test print
   if(mpi_driver->west_proc == MPI_PROC_NULL) {
     for(int j = grid->J_Max(); j >= grid->J_Min(); j--) {
@@ -715,6 +716,7 @@ void NAVIER_STOKES_SOLVER<T>::Corrector()
                 (*u)(grid->I_Min()-1,j,ceil(grid->K_Max()/2)).x ) / 2. << endl;
     }
   }
+  */
 
   // Wait for all procs to finish
   mpi_driver->Syncronize_All_Procs();
@@ -1193,6 +1195,7 @@ Set_Progressive_Wave_BC(parameters->time);
 Enforce_Velocity_BC(*u);  
 mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u); 
 
+/*
 //test print
 if(mpi_driver->west_proc == MPI_PROC_NULL) {
     cout << "Time step 0" << endl;
@@ -1208,6 +1211,7 @@ if(mpi_driver->west_proc == MPI_PROC_NULL) {
                 (*u)(grid->I_Min()-1,j,ceil(grid->K_Max()/2)).x ) / 2. << endl;
     }
   }
+*/
 }
 //*****************************************************************************
 // Set progressive wave BC
@@ -1219,8 +1223,8 @@ void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC(T time)
     for(int j=parameters->j_min_w_h; j<=parameters->j_max_w_h; j++)
       for(int k=parameters->k_min_w_h; k<=parameters->k_max_w_h; k++) 
         (*parameters->west_velocity)(j,k).x = 
-             parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y);
-                                  //*sin(parameters->freq*time);
+             parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y)
+                                    *sin(parameters->freq*time);
 } 
 //*****************************************************************************
 template class NAVIER_STOKES_SOLVER<double>;
