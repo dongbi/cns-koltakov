@@ -29,7 +29,7 @@ class PARAMETERS
       mg_smoothing_sub_iters, 
       halo_size, num_local_nodes_x, num_local_nodes_y,num_local_nodes_z,
       num_cpu_x, num_cpu_y, num_cpu_z, num_total_nodes_x, num_total_nodes_y, 
-      num_total_nodes_z, time_step;
+      num_total_nodes_z, time_step, num_scalars;
   int i_min_w_h, i_max_w_h, j_min_w_h, j_max_w_h, k_min_w_h, k_max_w_h,
       i_min, i_max, j_min, j_max, k_min, k_max;
   T x_min, x_max, y_min, y_max, z_min, z_max, x_length, y_length, z_length,
@@ -37,7 +37,7 @@ class PARAMETERS
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
-    omega, amp_p_grad, freq_p_grad;
+    omega, amp_p_grad, freq_p_grad, forcing_amp, m, freq;
   std::string output_dir, grid_filename;
   int argc; 
   char** argv;
@@ -49,7 +49,7 @@ class PARAMETERS
   Limiter_Type universal_limiter;
 
   ARRAY_2D<T> *depth;
-  ARRAY_2D<VECTOR_3D<T> > *lid_velocity, *bed_velocity;
+  ARRAY_2D<VECTOR_3D<T> > *lid_velocity, *bed_velocity, *west_velocity;
   VECTOR_3D<T>  *pressure_gradient;
 
   PARAMETERS(int ac, char** av) : argc(ac),argv(av) 
@@ -69,10 +69,12 @@ class PARAMETERS
       delete [] num_subgrid_local_nodes_z;}
     if(lid_velocity) delete lid_velocity;
     if(bed_velocity) delete bed_velocity;
+    if(west_velocity) delete west_velocity;
     if(depth) delete depth;
     if(pressure_gradient) delete pressure_gradient;}
 
   void Set_Lid_Velocity(const VECTOR_3D<T>& v);
+  void Set_West_Velocity();
   void Set_Depth_Based_On_Node_Locations(const ARRAY_3D<VECTOR_3D<T> >& nodes);
  
  private:
@@ -134,6 +136,7 @@ template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
   scalar_advection = true;
+  num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
@@ -151,17 +154,17 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_y = false;
   stretch_in_z = false;
   y_stretching_ratio = (T)0.; //(T)1.03; // if =0, uniform in vertical
-  west_bc = east_bc = NO_SLIP;
-  //suth_bc = FREE_SLIP; // sloshing wave
-  suth_bc = NO_SLIP; // lock-exchange
+  west_bc = FREE_SLIP;
+  east_bc = NO_SLIP;
+  suth_bc = NO_SLIP; 
   nrth_bc = back_bc = frnt_bc = FREE_SLIP;
   universal_limiter = SHARP; //UPWIND; //MUSCL; //scalar convection
 
   // saving on disk
   //save_data_timestep_period = 500; //write on disk after each period
-  save_fluxes = false; 
+  save_fluxes = true; 
   save_instant_velocity = true; //save instantaneous velocity field
-  save_pressure = false; //save pressure field
+  save_pressure = true; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
   // multigrid
@@ -190,6 +193,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   critical_cfl = (T).98; // termination barrier for cfl
   lid_velocity = NULL;
   bed_velocity = NULL;
+  west_velocity = NULL;
   depth = NULL;
   pressure_gradient = NULL;
   grid_filename = "grid_sloshing_wave.dat";//"grid_lock_exchange.dat";
@@ -222,7 +226,13 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  //Set_Lid_Velocity(VECTOR_3D<T>(16,0,0));
+  //Set_Lid_Velocity(VECTOR_3D<T>(0,-.2,0));
+
+  //Progressive wave boundary condition
+  Set_West_Velocity();
+  forcing_amp = .05;
+  m = pi/y_length;
+  freq = 2.*pi/10.;
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
@@ -264,6 +274,18 @@ void PARAMETERS<T>::Set_Lid_Velocity(const VECTOR_3D<T>& v)
   for(int i=i_min_w_h; i<=i_max_w_h; i++)
     for(int k=k_min_w_h; k<=k_max_w_h; k++)
       (*lid_velocity)(i,k) = v;
+}
+//*****************************************************************************
+// Sets velocity of the west boundary: used for progressive wave case 
+//*****************************************************************************
+template<class T>
+void PARAMETERS<T>::Set_West_Velocity()
+{
+  if(west_velocity) delete west_velocity;
+  west_velocity = new ARRAY_2D<VECTOR_3D<T> >(j_min,j_max,k_min,k_max,halo_size);
+  for(int j=j_min_w_h; j<=j_max_w_h; j++)
+    for(int k=k_min_w_h; k<=k_max_w_h; k++)
+      (*west_velocity)(j,k).x = 0;
 }
 //*****************************************************************************
 // Callback function (called by the CURVILINEAR_GRID class)
@@ -327,7 +349,7 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   T node_s = x_s/x_length; //node at beginning of slope
 
   T rise = .5*y_length; //in physical space
-  T run = x_length - x_s; //in physical space
+  T run = 2.; //x_length - x_s; //in physical space
   T slope = rise/(run/x_length); //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {

@@ -163,75 +163,85 @@ void CONVECTION<T>::Quick_Velocity_Flux_Update(ARRAY_3D<VECTOR_3D<T> >& u)
     //for(int i = U_xi->I_Min()-1; i <= U_xi->I_Max(); i++)
     for(int j = U_xi->J_Min(); j <= U_xi->J_Max(); j++)
       for(int k = U_xi->K_Min(); k <= U_xi->K_Max(); k++)
-	if((*U_xi)(i,j,k) >= (T)0)
-	  (*U_xi)(i,j,k) = (*grid->XI_x)(i,j,k) *
-	    ((T).75*u(i,j,k).x + (T).375*u(i+1,j,k).x - (T).125*u(i-1,j,k).x)
-	      + (*grid->XI_y)(i,j,k) *
-	    ((T).75*u(i,j,k).y + (T).375*u(i+1,j,k).y - (T).125*u(i-1,j,k).y)
-	      + (*grid->XI_z)(i,j,k) *
-	    ((T).75*u(i,j,k).z + (T).375*u(i+1,j,k).z - (T).125*u(i-1,j,k).z);
-	else
-	  (*U_xi)(i,j,k) = (*grid->XI_x)(i,j,k) *
-	    ((T).75*u(i+1,j,k).x + (T).375*u(i,j,k).x - (T).125*u(i+2,j,k).x)
-	      + (*grid->XI_y)(i,j,k) *
-	    ((T).75*u(i+1,j,k).y + (T).375*u(i,j,k).y - (T).125*u(i+2,j,k).y)
-	      + (*grid->XI_z)(i,j,k) *
-	    ((T).75*u(i+1,j,k).z + (T).375*u(i,j,k).z - (T).125*u(i+2,j,k).z);
-	
+        if((*U_xi)(i,j,k) >= (T)0)
+          (*U_xi)(i,j,k) = (*grid->XI_x)(i,j,k) *
+            ((T).75*u(i,j,k).x + (T).375*u(i+1,j,k).x - (T).125*u(i-1,j,k).x)
+            + (*grid->XI_y)(i,j,k) *
+            ((T).75*u(i,j,k).y + (T).375*u(i+1,j,k).y - (T).125*u(i-1,j,k).y)
+            + (*grid->XI_z)(i,j,k) *
+            ((T).75*u(i,j,k).z + (T).375*u(i+1,j,k).z - (T).125*u(i-1,j,k).z);
+        else
+          (*U_xi)(i,j,k) = (*grid->XI_x)(i,j,k) *
+            ((T).75*u(i+1,j,k).x + (T).375*u(i,j,k).x - (T).125*u(i+2,j,k).x)
+            + (*grid->XI_y)(i,j,k) *
+            ((T).75*u(i+1,j,k).y + (T).375*u(i,j,k).y - (T).125*u(i+2,j,k).y)
+            + (*grid->XI_z)(i,j,k) *
+            ((T).75*u(i+1,j,k).z + (T).375*u(i,j,k).z - (T).125*u(i+2,j,k).z);
+
   // Calculating U_et
   for(int i = U_et->I_Min(); i <= U_et->I_Max(); i++) 
     for(int j = lower_boundary[1]; j <= upper_boundary[1]; j++)
       //for(int j = U_et->J_Min()-1; j <= U_et->J_Max(); j++)
       for(int k = U_et->K_Min(); k <= U_et->K_Max(); k++)
-	if((*U_et)(i,j,k) >= (T)0)
-	  (*U_et)(i,j,k) = (*grid->ET_x)(i,j,k) *
-	      ((T).75*u(i,j,k).x + (T).375*u(i,j+1,k).x - (T).125*u(i,j-1,k).x)
-	      + (*grid->ET_y)(i,j,k) *
-	      ((T).75*u(i,j,k).y + (T).375*u(i,j+1,k).y - (T).125*u(i,j-1,k).y)
-	      + (*grid->ET_z)(i,j,k)*
-	      ((T).75*u(i,j,k).z + (T).375*u(i,j+1,k).z - (T).125*u(i,j-1,k).z);
-	else
-	  (*U_et)(i,j,k) = (*grid->ET_x)(i,j,k) *
-	      ((T).75*u(i,j+1,k).x + (T).375*u(i,j,k).x - (T).125*u(i,j+2,k).x)
-	      + (*grid->ET_y)(i,j,k) *
-	      ((T).75*u(i,j+1,k).y + (T).375*u(i,j,k).y - (T).125*u(i,j+2,k).y)
-	      + (*grid->ET_z)(i,j,k) *
-	      ((T).75*u(i,j+1,k).z + (T).375*u(i,j,k).z - (T).125*u(i,j+2,k).z);
-  
+        if((*U_et)(i,j,k) >= (T)0)
+          (*U_et)(i,j,k) = (*grid->ET_x)(i,j,k) *
+            ((T).75*u(i,j,k).x + (T).375*u(i,j+1,k).x - (T).125*u(i,j-1,k).x)
+            + (*grid->ET_y)(i,j,k) *
+            ((T).75*u(i,j,k).y + (T).375*u(i,j+1,k).y - (T).125*u(i,j-1,k).y)
+            + (*grid->ET_z)(i,j,k)*
+            ((T).75*u(i,j,k).z + (T).375*u(i,j+1,k).z - (T).125*u(i,j-1,k).z);
+        else
+          (*U_et)(i,j,k) = (*grid->ET_x)(i,j,k) *
+            ((T).75*u(i,j+1,k).x + (T).375*u(i,j,k).x - (T).125*u(i,j+2,k).x)
+            + (*grid->ET_y)(i,j,k) *
+            ((T).75*u(i,j+1,k).y + (T).375*u(i,j,k).y - (T).125*u(i,j+2,k).y)
+            + (*grid->ET_z)(i,j,k) *
+            ((T).75*u(i,j+1,k).z + (T).375*u(i,j,k).z - (T).125*u(i,j+2,k).z);
+
   // Update flux on upper boundary based on lid_velocity
   if(parameters->lid_velocity)
     for(int i = U_et->I_Min(); i <= U_et->I_Max(); i++)
       for(int k = U_et->K_Min(); k <= U_et->K_Max(); k++)
-	(*U_et)(i,upper_boundary[1]+1,k) = 
-	                               (*grid->ET_y)(i,upper_boundary[1]+1,k)
-	                             * (*parameters->lid_velocity)(i,k).y;
+        (*U_et)(i,upper_boundary[1]+1,k) = 
+          (*grid->ET_y)(i,upper_boundary[1]+1,k)
+          * (*parameters->lid_velocity)(i,k).y;
 
   // Update flux on bottom boundary based on bed_velocity
   if(parameters->bed_velocity)
     for(int i = U_et->I_Min(); i <= U_et->I_Max(); i++)
       for(int k = U_et->K_Min(); k <= U_et->K_Max(); k++)
-	(*U_et)(i,lower_boundary[1]-1,k) = 
-	                               (*grid->ET_y)(i,lower_boundary[1]-1,k)
-	                             * (*parameters->bed_velocity)(i,k).y;
+        (*U_et)(i,lower_boundary[1]-1,k) = 
+          (*grid->ET_y)(i,lower_boundary[1]-1,k)
+          * (*parameters->bed_velocity)(i,k).y;
+
+  // Update flux on west boundary based on west_velocity
+  if(parameters->west_velocity)
+    if(mpi_driver->west_proc == MPI_PROC_NULL)
+    for(int j = U_xi->J_Min(); j <= U_xi->J_Max(); j++)
+      for(int k = U_xi->K_Min(); k <= U_xi->K_Max(); k++)
+        (*U_xi)(lower_boundary[0]-1,j,k) = 
+          (*grid->XI_x)(lower_boundary[0]-1,j,k)
+          * (*parameters->west_velocity)(j,k).x;
+
   // Calculating U_zt
   for(int i = U_zt->I_Min(); i <= U_zt->I_Max(); i++) 
     for(int j = U_zt->J_Min(); j <= U_zt->J_Max(); j++)
       //for(int k = U_zt->K_Min()-1; k <= U_zt->K_Max(); k++)
       for(int k = lower_boundary[2]; k <= upper_boundary[2]; k++)
-	if((*U_zt)(i,j,k) >= (T)0)
-	  (*U_zt)(i,j,k) = (*grid->ZT_x)(i,j,k) *
-	      ((T).75*u(i,j,k).x + (T).375*u(i,j,k+1).x - (T).125*u(i,j,k-1).x)
-	      + (*grid->ZT_y)(i,j,k) *
-	      ((T).75*u(i,j,k).y + (T).375*u(i,j,k+1).y - (T).125*u(i,j,k-1).y)
-	      + (*grid->ZT_z)(i,j,k) *
-	      ((T).75*u(i,j,k).z + (T).375*u(i,j,k+1).z - (T).125*u(i,j,k-1).z);
-	else
-	  (*U_zt)(i,j,k) = (*grid->ZT_x)(i,j,k) *
-	      ((T).75*u(i,j,k+1).x + (T).375*u(i,j,k).x - (T).125*u(i,j,k+2).x)
-	      + (*grid->ZT_y)(i,j,k) *
-	      ((T).75*u(i,j,k+1).y + (T).375*u(i,j,k).y - (T).125*u(i,j,k+2).y)
-	      + (*grid->ZT_z)(i,j,k) *
-	      ((T).75*u(i,j,k+1).z + (T).375*u(i,j,k).z - (T).125*u(i,j,k+2).z);
+        if((*U_zt)(i,j,k) >= (T)0)
+          (*U_zt)(i,j,k) = (*grid->ZT_x)(i,j,k) *
+            ((T).75*u(i,j,k).x + (T).375*u(i,j,k+1).x - (T).125*u(i,j,k-1).x)
+            + (*grid->ZT_y)(i,j,k) *
+            ((T).75*u(i,j,k).y + (T).375*u(i,j,k+1).y - (T).125*u(i,j,k-1).y)
+            + (*grid->ZT_z)(i,j,k) *
+            ((T).75*u(i,j,k).z + (T).375*u(i,j,k+1).z - (T).125*u(i,j,k-1).z);
+        else
+          (*U_zt)(i,j,k) = (*grid->ZT_x)(i,j,k) *
+            ((T).75*u(i,j,k+1).x + (T).375*u(i,j,k).x - (T).125*u(i,j,k+2).x)
+            + (*grid->ZT_y)(i,j,k) *
+            ((T).75*u(i,j,k+1).y + (T).375*u(i,j,k).y - (T).125*u(i,j,k+2).y)
+            + (*grid->ZT_z)(i,j,k) *
+            ((T).75*u(i,j,k+1).z + (T).375*u(i,j,k).z - (T).125*u(i,j,k+2).z);
 }
 //*****************************************************************************
 // Central Difference interpolation: updates velocity fluxes U_xi, U_et, U_zt

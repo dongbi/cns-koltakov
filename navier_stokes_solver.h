@@ -39,6 +39,7 @@ class NAVIER_STOKES_SOLVER
   bool Check_CFL();
   bool No_NAN();
   void Set_Initial_Conditions();
+  void Set_Progressive_Wave_BC(T time);
   void Post_Process();
   void Start_Simulation_Timer();
 
@@ -55,24 +56,33 @@ class NAVIER_STOKES_SOLVER
   PARAMETERS<T>* parameters;
   MPI_DRIVER<T>* mpi_driver;
   CURVILINEAR_GRID<T>* grid;
-  CONVECTION<T>* convection;
+  CONVECTION<T>* convection1, *convection2;
   TURBULENCE<T>* turbulence;
   PRESSURE<T>* pressure;
-  SCALAR<T>* scalar;
+  SCALAR<T>* scalar1, *scalar2;
   POTENTIAL_ENERGY<T>* potential_energy;
   DATA_AGGREGATOR<T>* data_aggregator;
   MOVING_GRID_ENGINE<T>* moving_grid_engine;
 
   ARRAY_3D<VECTOR_3D<T> > *u, *RHS_for_AB;
-  ARRAY_3D<T> *P, *rho;
+  ARRAY_1D<ARRAY_3D<T>* > *phi;
+  ARRAY_3D<T> *P; //, *rho;
   ARRAY_3D<T> *U_xi, *U_et, *U_zt; //velocities on faces
 };
 //*****************************************************************************
 template<class T>
 void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
   if(parameters->scalar_advection){
-    scalar->Update_RHS();
-    scalar->Solve();
+    if(parameters->num_scalars == 1){
+      scalar1->Update_RHS();
+      scalar1->Solve();
+    }
+    else if(parameters->num_scalars == 2){
+      scalar1->Update_RHS();
+      scalar2->Update_RHS();
+      scalar1->Solve();
+      scalar2->Solve();
+    }
     if(parameters->potential_energy){
       T E_background = potential_energy->Calculate(); // executed by all
       if(!mpi_driver->my_rank) cout<<"E_background = "<<E_background<<endl;
