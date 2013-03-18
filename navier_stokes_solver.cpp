@@ -1157,7 +1157,7 @@ if(parameters->scalar_advection) {
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          if(((*grid)(i,j,k).x > 1.75) && ((*grid)(i,j,k).x < 2.25))
+          if(((*grid)(i,j,k).x > 2.25) && ((*grid)(i,j,k).x < 2.75))
             (*(*phi)(2))(i,j,k) = 1.;
         }
       }

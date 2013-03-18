@@ -164,7 +164,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //save_data_timestep_period = 500; //write on disk after each period
   save_fluxes = true; 
   save_instant_velocity = true; //save instantaneous velocity field
-  save_pressure = false; //save pressure field
+  save_pressure = true; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
   // multigrid
@@ -230,7 +230,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   //Progressive wave boundary condition
   Set_West_Velocity();
-  forcing_amp = .2;
+  forcing_amp = .05;
   m = pi/y_length;
   freq = 2.*pi/10.;
 
@@ -349,7 +349,7 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   T node_s = x_s/x_length; //node at beginning of slope
 
   T rise = .5*y_length; //in physical space
-  T run = x_length - x_s; //in physical space
+  T run = 2.; //x_length - x_s; //in physical space
   T slope = rise/(run/x_length); //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {
