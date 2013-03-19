@@ -12,8 +12,8 @@
  num_cpu_z  =  1                    // number of processors in Z coordinate
  delta_time = .01                   // delta time
  max_timestep = 10500               // maximum timestep for the simulation
- save_data_timestep_period = 25     // write on disk after each period
+ save_data_timestep_period = 1      // write on disk after each period
  print_timestep_period = 1          // display to console after each period
  restart_timestep    =  0           // restarts sim, if nontrivial value
  molecular_viscosity =  1e-6
- output_dir          =  "../zang/tmp_output/" 
+ output_dir          =  "../zang/tmp_output_2/" 

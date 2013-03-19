@@ -96,7 +96,7 @@ void NAVIER_STOKES_SOLVER<T>::Post_Process()
   // save data ever save_data_timestep_period
   if(parameters->time_step % parameters->save_data_timestep_period == 0){
     Save_Simulation_Data();  
-   // Save_Simulation_Data_For_Restart();
+    Save_Simulation_Data_For_Restart();
   }
 
   if(parameters->aggregate_data) data_aggregator->Aggregate();
