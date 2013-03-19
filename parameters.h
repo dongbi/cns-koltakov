@@ -133,7 +133,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  two_d = false; //two-dimensional simulation (multigrid doesn't work in z)
+  two_d = true; //two-dimensional simulation (multigrid doesn't work in z)
   scalar_advection = true;
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
