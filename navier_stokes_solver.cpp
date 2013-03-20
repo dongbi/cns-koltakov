@@ -225,7 +225,7 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           // Coriolis terms
           if(parameters->coriolis){
             (*RHS_for_AB)(i,j,k).x -=parameters->omega * (*u)(i,j,k).z*jacobian;
-            (*RHS_for_AB)(i,j,k).z +=parameters->omega * (*u)(i,j,k).x*jacobian;
+            (*RHS_for_AB)(i,j,k).z +=parameters->omega * (*u)(i,j,k).x*jacobian; 
           }
           // buoyancy term
           //(*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
