@@ -508,91 +508,164 @@ void CURVILINEAR_GRID<T>::Subsample_Metric_Quantities(
 {
   int i_new, j_new, k_new;
 
-  for (int i=1; i<=nx_new; i++)
-    for (int j=1; j<=ny_new; j++)
-      for (int k=1; k<=nz_new; k++) {
-        i_new = 2*i - 1; 
-        j_new = 2*j - 1; 
-        k_new = 2*k - 1;
-        inverse_jacobian_new(i,j,k) = 
-          1.0 / inverse_jacobian(i_new,  j_new,  k_new  )
-          + 1.0 / inverse_jacobian(i_new+1,j_new,  k_new  )
-          + 1.0 / inverse_jacobian(i_new,  j_new+1,k_new  )
-          + 1.0 / inverse_jacobian(i_new+1,j_new+1,k_new  )
-          + 1.0 / inverse_jacobian(i_new,  j_new,  k_new+1)
-          + 1.0 / inverse_jacobian(i_new+1,j_new,  k_new+1)
-          + 1.0 / inverse_jacobian(i_new,  j_new+1,k_new+1)
-          + 1.0 / inverse_jacobian(i_new+1,j_new+1,k_new+1);
-        inverse_jacobian_new(i,j,k) = 1.0 / inverse_jacobian_new(i,j,k);
-      }
+  if(!parameters->two_d){
+    for (int i=1; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          i_new = 2*i - 1; 
+          j_new = 2*j - 1; 
+          k_new = 2*k - 1;
+          inverse_jacobian_new(i,j,k) = 
+            1.0 / inverse_jacobian(i_new,  j_new,  k_new  )
+            + 1.0 / inverse_jacobian(i_new+1,j_new,  k_new  )
+            + 1.0 / inverse_jacobian(i_new,  j_new+1,k_new  )
+            + 1.0 / inverse_jacobian(i_new+1,j_new+1,k_new  )
+            + 1.0 / inverse_jacobian(i_new,  j_new,  k_new+1)
+            + 1.0 / inverse_jacobian(i_new+1,j_new,  k_new+1)
+            + 1.0 / inverse_jacobian(i_new,  j_new+1,k_new+1)
+            + 1.0 / inverse_jacobian(i_new+1,j_new+1,k_new+1);
+          inverse_jacobian_new(i,j,k) = 1.0 / inverse_jacobian_new(i,j,k);
+        }
 
-  for (int i=0; i<=nx_new; i++)
-    for (int j=1; j<=ny_new; j++)
-      for (int k=1; k<=nz_new; k++) {
-        i_new = 2*i; 
-        j_new = 2*j - 1; 
-        k_new = 2*k - 1;
-        G11_new(i,j,k) = 0.5 * ( G11(i_new,j_new,  k_new  )
-            + G11(i_new,j_new+1,k_new  )
-            + G11(i_new,j_new  ,k_new+1)
-            + G11(i_new,j_new+1,k_new+1) );
-        G12_new(i,j,k) = 0.5 * ( G12(i_new,j_new,  k_new  )
-            + G12(i_new,j_new+1,k_new  )
-            + G12(i_new,j_new  ,k_new+1)
-            + G12(i_new,j_new+1,k_new+1) );
-        G13_new(i,j,k) = 0.5 * ( G13(i_new,j_new,  k_new  )
-            + G13(i_new,j_new+1,k_new  )
-            + G13(i_new,j_new  ,k_new+1)
-            + G13(i_new,j_new+1,k_new+1) );
-      }
+    for (int i=0; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          i_new = 2*i; 
+          j_new = 2*j - 1; 
+          k_new = 2*k - 1;
+          G11_new(i,j,k) = 0.5 * ( G11(i_new,j_new,  k_new  )
+              + G11(i_new,j_new+1,k_new  )
+              + G11(i_new,j_new  ,k_new+1)
+              + G11(i_new,j_new+1,k_new+1) );
+          G12_new(i,j,k) = 0.5 * ( G12(i_new,j_new,  k_new  )
+              + G12(i_new,j_new+1,k_new  )
+              + G12(i_new,j_new  ,k_new+1)
+              + G12(i_new,j_new+1,k_new+1) );
+          G13_new(i,j,k) = 0.5 * ( G13(i_new,j_new,  k_new  )
+              + G13(i_new,j_new+1,k_new  )
+              + G13(i_new,j_new  ,k_new+1)
+              + G13(i_new,j_new+1,k_new+1) );
+        }
 
-  for (int i=1; i<=nx_new; i++)
-    for (int j=0; j<=ny_new; j++)
-      for (int k=1; k<=nz_new; k++) {
-        i_new = 2*i - 1; 
-        j_new = 2*j; 
-        k_new = 2*k - 1;
-        G21_new(i,j,k) = 0.5 * ( G21(i_new,  j_new,k_new  )
-            + G21(i_new+1,j_new,k_new  )
-            + G21(i_new,  j_new,k_new+1)
-            + G21(i_new+1,j_new,k_new+1) );
-        G22_new(i,j,k) = 0.5 * ( G22(i_new,  j_new,k_new  )
-            + G22(i_new+1,j_new,k_new  )
-            + G22(i_new,  j_new,k_new+1)
-            + G22(i_new+1,j_new,k_new+1) );
-        G23_new(i,j,k) = 0.5 * ( G23(i_new,  j_new,k_new  )
-            + G23(i_new+1,j_new,k_new  )
-            + G23(i_new,  j_new,k_new+1)
-            + G23(i_new+1,j_new,k_new+1) );
-      }
-  for (int i=1; i<=nx_new; i++)
-    for (int j=1; j<=ny_new; j++)
-      for (int k=0; k<=nz_new; k++) {
-        i_new = 2*i - 1; 
-        j_new = 2*j - 1; 
-        k_new = 2*k;
-        G31_new(i,j,k) = 0.5 * ( G31(i_new,  j_new,  k_new)
-            + G31(i_new+1,j_new,  k_new)
-            + G31(i_new,  j_new+1,k_new)
-            + G31(i_new+1,j_new+1,k_new) );
-        G32_new(i,j,k) = 0.5 * ( G32(i_new,  j_new,  k_new)
-            + G32(i_new+1,j_new,  k_new)
-            + G32(i_new,  j_new+1,k_new)
-            + G32(i_new+1,j_new+1,k_new) );
-        G33_new(i,j,k) = 0.5 * ( G33(i_new,  j_new,  k_new)
-            + G33(i_new+1,j_new,  k_new)
-            + G33(i_new,  j_new+1,k_new)
-            + G33(i_new+1,j_new+1,k_new) );
-      }
+    for (int i=1; i<=nx_new; i++)
+      for (int j=0; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          i_new = 2*i - 1; 
+          j_new = 2*j; 
+          k_new = 2*k - 1;
+          G21_new(i,j,k) = 0.5 * ( G21(i_new,  j_new,k_new  )
+              + G21(i_new+1,j_new,k_new  )
+              + G21(i_new,  j_new,k_new+1)
+              + G21(i_new+1,j_new,k_new+1) );
+          G22_new(i,j,k) = 0.5 * ( G22(i_new,  j_new,k_new  )
+              + G22(i_new+1,j_new,k_new  )
+              + G22(i_new,  j_new,k_new+1)
+              + G22(i_new+1,j_new,k_new+1) );
+          G23_new(i,j,k) = 0.5 * ( G23(i_new,  j_new,k_new  )
+              + G23(i_new+1,j_new,k_new  )
+              + G23(i_new,  j_new,k_new+1)
+              + G23(i_new+1,j_new,k_new+1) );
+        }
+    for (int i=1; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=0; k<=nz_new; k++) {
+          i_new = 2*i - 1; 
+          j_new = 2*j - 1; 
+          k_new = 2*k;
+          G31_new(i,j,k) = 0.5 * ( G31(i_new,  j_new,  k_new)
+              + G31(i_new+1,j_new,  k_new)
+              + G31(i_new,  j_new+1,k_new)
+              + G31(i_new+1,j_new+1,k_new) );
+          G32_new(i,j,k) = 0.5 * ( G32(i_new,  j_new,  k_new)
+              + G32(i_new+1,j_new,  k_new)
+              + G32(i_new,  j_new+1,k_new)
+              + G32(i_new+1,j_new+1,k_new) );
+          G33_new(i,j,k) = 0.5 * ( G33(i_new,  j_new,  k_new)
+              + G33(i_new+1,j_new,  k_new)
+              + G33(i_new,  j_new+1,k_new)
+              + G33(i_new+1,j_new+1,k_new) );
+        }
 
-  for (int i=1; i<=nx_new; i++)
-    for (int j=1; j<=ny_new; j++)
-      for (int k=1; k<=nz_new; k++) {
-        GCC_new(i,j,k) = G11_new(i,j,k) +  G11_new(i-1,j,  k  )
-          + G22_new(i,j,k) +  G22_new(i,  j-1,k  )
-          + G33_new(i,j,k) +  G33_new(i,  j,  k-1);
+    for (int i=1; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          GCC_new(i,j,k) = G11_new(i,j,k) +  G11_new(i-1,j,  k  )
+            + G22_new(i,j,k) +  G22_new(i,  j-1,k  )
+            + G33_new(i,j,k) +  G33_new(i,  j,  k-1);
 
-      }
+        }
+  } else {
+    for (int i=1; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          i_new = 2*i - 1; 
+          j_new = 2*j - 1; 
+          k_new = k;
+          inverse_jacobian_new(i,j,k) = 
+            1.0 / inverse_jacobian(i_new,  j_new,  k_new  )
+            + 1.0 / inverse_jacobian(i_new+1,j_new,  k_new  )
+            + 1.0 / inverse_jacobian(i_new,  j_new+1,k_new  )
+            + 1.0 / inverse_jacobian(i_new+1,j_new+1,k_new  );
+          inverse_jacobian_new(i,j,k) = 1.0 / inverse_jacobian_new(i,j,k);
+        }
+
+    for (int i=0; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          i_new = 2*i; 
+          j_new = 2*j - 1; 
+          k_new = k;
+          G11_new(i,j,k) = 0.5 * ( G11(i_new,j_new,  k_new  )
+                                 + G11(i_new,j_new+1,k_new  ) );
+          G12_new(i,j,k) = 0.5 * ( G12(i_new,j_new,  k_new  )
+                                 + G12(i_new,j_new+1,k_new  ) );
+          G13_new(i,j,k) = 0.5 * ( G13(i_new,j_new,  k_new  )
+                                 + G13(i_new,j_new+1,k_new  ) );
+        }
+
+    for (int i=1; i<=nx_new; i++)
+      for (int j=0; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          i_new = 2*i - 1; 
+          j_new = 2*j; 
+          k_new = k;
+          G21_new(i,j,k) = 0.5 * ( G21(i_new,  j_new,k_new  )
+                                 + G21(i_new+1,j_new,k_new  ) );
+          G22_new(i,j,k) = 0.5 * ( G22(i_new,  j_new,k_new  )
+                                 + G22(i_new+1,j_new,k_new  ) );
+          G23_new(i,j,k) = 0.5 * ( G23(i_new,  j_new,k_new  )
+                                 + G23(i_new+1,j_new,k_new  ) );
+        }
+    for (int i=1; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=0; k<=nz_new; k++) {
+          i_new = 2*i - 1; 
+          j_new = 2*j - 1; 
+          k_new = k;
+          G31_new(i,j,k) = 0.5 * ( G31(i_new,  j_new,  k_new)
+                                 + G31(i_new+1,j_new,  k_new)
+                                 + G31(i_new,  j_new+1,k_new)
+                                 + G31(i_new+1,j_new+1,k_new) );
+          G32_new(i,j,k) = 0.5 * ( G32(i_new,  j_new,  k_new)
+                                 + G32(i_new+1,j_new,  k_new)
+                                 + G32(i_new,  j_new+1,k_new)
+                                 + G32(i_new+1,j_new+1,k_new) );
+          G33_new(i,j,k) = 0.5 * ( G33(i_new,  j_new,  k_new)
+                                 + G33(i_new+1,j_new,  k_new)
+                                 + G33(i_new,  j_new+1,k_new)
+                                 + G33(i_new+1,j_new+1,k_new) );
+        }
+
+    for (int i=1; i<=nx_new; i++)
+      for (int j=1; j<=ny_new; j++)
+        for (int k=1; k<=nz_new; k++) {
+          GCC_new(i,j,k) = G11_new(i,j,k) +  G11_new(i-1,j,  k  )
+            + G22_new(i,j,k) +  G22_new(i,  j-1,k  )
+            + G33_new(i,j,k) +  G33_new(i,  j,  k-1);
+
+        }
+
+  }
 }
 //*****************************************************************************
 // Calculate total volume of domain
