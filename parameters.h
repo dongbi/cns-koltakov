@@ -239,7 +239,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   //Progressive wave boundary condition
   Set_West_Velocity();
-  forcing_amp = .05;
+  forcing_amp = .1;
   m = pi/y_length;
   freq = 2.*pi/10.;
 
