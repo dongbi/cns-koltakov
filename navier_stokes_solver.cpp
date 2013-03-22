@@ -1129,7 +1129,7 @@ T Lw = 1./sqrt(3.);
 T zeta;
 
 if(parameters->scalar_advection) {
-  /*
+ /* 
   //Single Solitary wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1141,7 +1141,8 @@ if(parameters->scalar_advection) {
   }
   }
   }
-  */
+*/
+  
   //Progressive wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1152,6 +1153,7 @@ if(parameters->scalar_advection) {
       }
     }
   }
+  
   //passive scalar
   if(parameters->num_scalars == 2){
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {

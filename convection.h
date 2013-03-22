@@ -215,13 +215,33 @@ void CONVECTION<T>::Quick_Velocity_Flux_Update(ARRAY_3D<VECTOR_3D<T> >& u)
           * (*parameters->bed_velocity)(i,k).y;
 
   // Update flux on west boundary based on west_velocity
-  if(parameters->west_velocity)
-    if(mpi_driver->west_proc == MPI_PROC_NULL)
-    for(int j = U_xi->J_Min(); j <= U_xi->J_Max(); j++)
-      for(int k = U_xi->K_Min(); k <= U_xi->K_Max(); k++)
-        (*U_xi)(lower_boundary[0]-1,j,k) = 
-          (*grid->XI_x)(lower_boundary[0]-1,j,k)
-          * (*parameters->west_velocity)(j,k).x;
+  T Qp = 0., Q = 0., alpha; 
+
+  if(parameters->west_velocity){
+    if(mpi_driver->west_proc == MPI_PROC_NULL){
+      for(int j = U_xi->J_Min(); j <= U_xi->J_Max(); j++)
+        for(int k = U_xi->K_Min(); k <= U_xi->K_Max(); k++){
+          (*U_xi)(lower_boundary[0]-1,j,k) = 
+            (*grid->XI_x)(lower_boundary[0]-1,j,k)
+            * (*parameters->west_velocity)(j,k).x;
+          Qp += (*U_xi)(lower_boundary[0]-1,j,k);
+        }
+    }
+  }
+
+  //Adjust to conserve volume
+  mpi_driver->Replace_With_Sum_On_All_Procs(Qp);
+
+  if(parameters->west_velocity){
+    if(mpi_driver->west_proc == MPI_PROC_NULL){
+      alpha = -Qp/parameters->num_total_nodes_y/parameters->num_total_nodes_z;
+      for(int j = U_xi->J_Min(); j <= U_xi->J_Max(); j++)
+        for(int k = U_xi->K_Min(); k <= U_xi->K_Max(); k++){
+          (*U_xi)(lower_boundary[0]-1,j,k) += alpha;
+          Q += (*U_xi)(lower_boundary[0]-1,j,k);
+        }
+    }
+  }
 
   // Calculating U_zt
   for(int i = U_zt->I_Min(); i <= U_zt->I_Max(); i++) 
