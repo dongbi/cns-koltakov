@@ -33,7 +33,7 @@ class PARAMETERS
   int i_min_w_h, i_max_w_h, j_min_w_h, j_max_w_h, k_min_w_h, k_max_w_h,
       i_min, i_max, j_min, j_max, k_min, k_max;
   T x_min, x_max, y_min, y_max, z_min, z_max, x_length, y_length, z_length,
-    domain_skew_angle, y_stretching_ratio;
+    domain_skew_angle, x_stretching_ratio, y_stretching_ratio;
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
@@ -154,7 +154,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_y = false;
   stretch_in_z = false;
-  y_stretching_ratio = (T)1.03; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  x_stretching_ratio = (T)1.01;
+  y_stretching_ratio = (T)1.02; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -239,7 +240,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   //Progressive wave boundary condition
   Set_West_Velocity();
-  forcing_amp = .1;
+  forcing_amp = .05;
   m = pi/y_length;
   freq = 2.*pi/10.;
 

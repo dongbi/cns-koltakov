@@ -74,6 +74,7 @@ class CURVILINEAR_GRID
                           *G21_sub,*G22_sub,*G23_sub, 
                           *G31_sub,*G32_sub,*G33_sub, *GCC_sub;
  private:
+  void Stretch_In_Horizontal_To_Resolve_Breaking();
   void Stretch_In_Vertical_To_Resolve_Bottom();
   void Push_Nodes_Toward_Boundaries();
   void Scale_And_Shift_Grid_Nodes_To_Fit_Physical_Domain();

@@ -130,6 +130,23 @@ void CURVILINEAR_GRID<T>::Init_Local_Grid_Node_Positions_With_Uniform_Cube()
       }
 }
 //*****************************************************************************
+// Stretches the horizontal (x) coordinate to resolve breaking: assumes x:[0;1]
+//*****************************************************************************
+  template<class T>
+void CURVILINEAR_GRID<T>::Stretch_In_Horizontal_To_Resolve_Breaking()
+{
+  int i_local_min = mpi_driver->my_coords_in_grid[0] * i_size;
+  T r = parameters->x_stretching_ratio, 
+  dx_min = (1. - r) / (1. - pow(r,parameters->num_total_nodes_x-1));
+  for(int i = i_max_w_h; i >= i_min_w_h; i--)
+    for(int j = j_min_w_h; j <= j_max_w_h; j++)
+      for(int k = k_min_w_h; k <= k_max_w_h; k++)
+        if(i_local_min+i-1 >= i_min_w_h)
+          (*grid)(i,j,k).x = 1 - dx_min * (1. - pow(r,i_local_min+i-1)) / (1. - r);
+        else
+          (*grid)(i,j,k).x = 1 + dx_min * halo_size; //halo equal cells above 1
+}
+//*****************************************************************************
 // Stretches the vertical (y) coordinate to resolve the bottom: assumes y:[0;1]
 //*****************************************************************************
   template<class T>
@@ -137,7 +154,7 @@ void CURVILINEAR_GRID<T>::Stretch_In_Vertical_To_Resolve_Bottom()
 {
   int j_local_min = mpi_driver->my_coords_in_grid[1] * j_size;
   T r = parameters->y_stretching_ratio, 
-    dy_min = (1. - r) / (1. - pow(r,parameters->num_total_nodes_y-1));
+  dy_min = (1. - r) / (1. - pow(r,parameters->num_total_nodes_y-1));
   for(int i = i_min_w_h; i <= i_max_w_h; i++)
     for(int j = j_min_w_h; j <= j_max_w_h; j++)
       for(int k = k_min_w_h; k <= k_max_w_h; k++)
@@ -186,6 +203,7 @@ void CURVILINEAR_GRID<T>::Custom_Adjust_Local_Grid_Node_Positions()
       || parameters->stretch_in_z) 
     Push_Nodes_Toward_Boundaries();
 
+  if(parameters->x_stretching_ratio) Stretch_In_Horizontal_To_Resolve_Breaking();
   if(parameters->y_stretching_ratio) Stretch_In_Vertical_To_Resolve_Bottom();
 
   //Set depth(:,:) based on node positions (modified from uniform grid)
