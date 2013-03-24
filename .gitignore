@@ -2,5 +2,4 @@
 *.o
 test
 /output
-/mfiles
 tags
