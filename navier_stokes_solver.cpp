@@ -941,6 +941,18 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   if(parameters->time_step==0)
     mpi_driver->Write_Global_Array_To_Disk("node_position", *grid->grid, 0, true);
   if(parameters->save_instant_velocity)
+    //mpi_driver->Write_Binary_Local_Array("velocity", *u); 
+  if(parameters->save_pressure)
+    mpi_driver->Write_Binary_Local_Array("pressure", *P); 
+  if(parameters->scalar_advection){
+    mpi_driver->Write_Binary_Local_Array("density", *(*phi)(1)); 
+    if(parameters->num_scalars == 2)
+      mpi_driver->Write_Binary_Local_Array("scalar", *(*phi)(2)); 
+  }
+  /*
+  if(parameters->time_step==0)
+    mpi_driver->Write_Global_Array_To_Disk("node_position", *grid->grid, 0, true);
+  if(parameters->save_instant_velocity)
     mpi_driver->Write_Global_Array_To_Disk("velocity",*u,parameters->time_step, true);
   if(parameters->save_pressure)
     mpi_driver->Write_Global_Array_To_Disk("pressure",*P,parameters->time_step);
@@ -978,7 +990,8 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   //  mpi_driver->Write_Binary_Local_Array("bin_p",*P);  
   //  mpi_driver->Read_Binary_Local_Array("bin_p",*P); 
   //}
-}
+  */
+ }
 //*****************************************************************************
 // Saving binary restart data to output directory for each proc
 //*****************************************************************************

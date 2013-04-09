@@ -1,14 +1,13 @@
 % Displays CNS simulation data in binary format
 clear all; close all; clc;
-filedir = '/home/barthur/zang/tmp_output_2/';
+filedir = '/home/barthur/zang/tmp_output_7/';
 
-timestep = 10500;
+timestep = 1;
 delta_ts = 0; %averaging
 save_timestep_period = 1;
 timestep = timestep/save_timestep_period;
 display_grid = true;
 display_pressure = false;
-
 display_averages = false;
 display_lambda2 = false;
 
@@ -28,9 +27,9 @@ directory = filedir;
 %directory = './flat_channel_96x48x48_d7_110Kts/';
 
 % global grid dims
-g_ni = 128;
-g_nj = 64; 
-g_nk = 32;
+g_ni = 512;
+g_nj = 128; 
+g_nk = 1;
 
 % # procs in each dim
 npx=4;
