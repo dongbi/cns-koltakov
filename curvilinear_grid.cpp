@@ -138,11 +138,11 @@ void CURVILINEAR_GRID<T>::Stretch_In_Horizontal_To_Resolve_Breaking()
   int i_local_min = mpi_driver->my_coords_in_grid[0] * i_size;
   T r = parameters->x_stretching_ratio, 
   dx_min = (1. - r) / (1. - pow(r,parameters->num_total_nodes_x-1));
-  for(int i = i_max_w_h; i >= i_min_w_h; i--)
+  for(int i = i_min_w_h; i <= i_max_w_h; i++)
     for(int j = j_min_w_h; j <= j_max_w_h; j++)
       for(int k = k_min_w_h; k <= k_max_w_h; k++)
         if(i_local_min+i-1 >= i_min_w_h)
-          (*grid)(i,j,k).x = 1 - dx_min * (1. - pow(r,i_local_min+i-1)) / (1. - r);
+          (*grid)(i,j,k).x = dx_min * (1. - pow(r,i_local_min+i-1)) / (1. - r);
         else
           (*grid)(i,j,k).x = 1 + dx_min * halo_size; //halo equal cells above 1
 }

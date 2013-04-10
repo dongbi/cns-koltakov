@@ -154,8 +154,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_y = false;
   stretch_in_z = false;
-  x_stretching_ratio = (T)0.; //(T)1.01;
-  y_stretching_ratio = (T)1.01; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  x_stretching_ratio = (T).99; //(T)1.01;
+  y_stretching_ratio = (T)1.02; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
