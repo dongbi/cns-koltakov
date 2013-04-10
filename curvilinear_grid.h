@@ -6,12 +6,12 @@
 #ifndef __CURVILINEAR_GRID__
 #define __CURVILINEAR_GRID__
 
+#include "mpi_driver.h"
 #include "array_3d.h"
 #include "array_2d.h"
 #include "array_1d.h"
 #include "vector_3d.h"
 #include "parameters.h"
-#include "mpi_driver.h"
 
 //template<class T> class MPI_DRIVER;
 
