@@ -37,7 +37,7 @@ class PARAMETERS
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
-    omega, amp_p_grad, freq_p_grad, forcing_amp, m, forcing_period, freq;
+    omega, amp_p_grad, freq_p_grad, forcing_amp, m, freq;
   std::string output_dir, grid_filename;
   int argc; 
   char** argv;
@@ -116,7 +116,6 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("num_cpu_x",num_cpu_x)) num_cpu_x = 4;
   if(!parser->Get_Value("num_cpu_y",num_cpu_y)) num_cpu_y = 2;
   if(!parser->Get_Value("num_cpu_z",num_cpu_z)) num_cpu_z = 2;
- 
   if(!parser->Get_Value("delta_time",delta_time)) delta_time = .002;
   if(!parser->Get_Value("max_timestep",max_timestep)) max_timestep = 200000;
   if(!parser->Get_Value("save_data_timestep_period",save_data_timestep_period))
@@ -125,12 +124,8 @@ void PARAMETERS<T>::Set_Parsable_Values() {
     print_timestep_period = 1;
   if(!parser->Get_Value("molecular_viscosity",molecular_viscosity)) 
     molecular_viscosity = 1e-6;
-  if(!parser->Get_Value("forcing_amp",forcing_amp)) 
-    forcing_amp = .05;
-  if(!parser->Get_Value("forcing_period",forcing_period)) 
-    forcing_period = 10;
   if(!parser->Get_Value("output_dir",output_dir)) output_dir = "./output/";
-  if(!parser->Get_Value("restart_timestep",restart_timestep))restart_timestep=0;
+  if(!parser->Get_Value("restart_timestep",restart_timestep))restart_timestep = 0;
 }
 //*****************************************************************************
 // 1) Sets parameters not expected from 'parameters.dat'
@@ -139,7 +134,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  two_d = false; //two-dimensional simulation (multigrid doesn't work in z)
+  two_d = true; //two-dimensional simulation (multigrid doesn't work in z)
   scalar_advection = true;
   num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
@@ -158,8 +153,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_y = false;
   stretch_in_z = false;
-  x_stretching_ratio = (T)1.01; //(T)1.01;
-  y_stretching_ratio = (T)1.02; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  x_stretching_ratio = (T)0.; //(T)1.01;
+  y_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -168,9 +163,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   // saving on disk
   //save_data_timestep_period = 500; //write on disk after each period
-  save_fluxes = true; 
+  save_fluxes = false; 
   save_instant_velocity = true; //save instantaneous velocity field
-  save_pressure = true; //save pressure field
+  save_pressure = false; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
   // multigrid
@@ -244,9 +239,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   //Progressive wave boundary condition
   Set_West_Velocity();
-  //forcing_amp = .05;
+  forcing_amp = .05;
   m = pi/y_length;
-  freq = 2.*pi/forcing_period;
+  freq = 2.*pi/10;
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
