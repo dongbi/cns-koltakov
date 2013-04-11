@@ -15,5 +15,7 @@
  save_data_timestep_period = 100    // write on disk after each period
  print_timestep_period = 1          // display to console after each period
  restart_timestep    =  0           // restarts sim, if nontrivial value
- molecular_viscosity =  1e-6
+ molecular_viscosity =  1e-6        // 
+ forcing_amp = .05                  // amplitude of forcing wave
+ forcing_period = 10                // period of forcing wave
  output_dir          =  "./output/" 

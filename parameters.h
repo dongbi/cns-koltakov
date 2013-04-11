@@ -37,7 +37,7 @@ class PARAMETERS
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
-    omega, amp_p_grad, freq_p_grad, forcing_amp, m, freq;
+    omega, amp_p_grad, freq_p_grad, forcing_amp, m, forcing_period, freq;
   std::string output_dir, grid_filename;
   int argc; 
   char** argv;
@@ -125,6 +125,10 @@ void PARAMETERS<T>::Set_Parsable_Values() {
     print_timestep_period = 1;
   if(!parser->Get_Value("molecular_viscosity",molecular_viscosity)) 
     molecular_viscosity = 1e-6;
+  if(!parser->Get_Value("forcing_amp",forcing_amp)) 
+    forcing_amp = .05;
+  if(!parser->Get_Value("forcing_period",forcing_period)) 
+    forcing_period = 10;
   if(!parser->Get_Value("output_dir",output_dir)) output_dir = "./output/";
   if(!parser->Get_Value("restart_timestep",restart_timestep))restart_timestep=0;
 }
@@ -240,9 +244,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   //Progressive wave boundary condition
   Set_West_Velocity();
-  forcing_amp = .05;
+  //forcing_amp = .05;
   m = pi/y_length;
-  freq = 2.*pi/10.;
+  freq = 2.*pi/forcing_period;
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
