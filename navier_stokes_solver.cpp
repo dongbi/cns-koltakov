@@ -1120,40 +1120,38 @@ T d = parameters->depth ? (*parameters->depth)(i,k)
 //Bobby's cases
 //Set velocity and stratification
 T alpha = .99;
-T delta = .03;
-T ratio = .03; //delta_rho/rho_0
+T delta = .15;
+T ratio = .02; //delta_rho/rho_0
 T rho0 = 1000.;
 T delta_rho = ratio*rho0;  
-T a = .15;
-T Lw = 1./sqrt(3.);
+T a = .1;
+T Lw = .7;
 T zeta;
 
 if(parameters->scalar_advection) {
- /* 
   //Single Solitary wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-  zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-  (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
-  0.5*parameters->y_length)/delta*atanh(alpha));           
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+        zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
+        (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
+              parameters->y_length/2.5)/delta*atanh(alpha));           
+      }
+    }
   }
-  }
-  }
-*/
-  
+/*
   //Progressive wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
     for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
       for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
         (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y + 
-              0.5*parameters->y_length)/delta*atanh(alpha));           
+              parameters->y_length/2.5)/delta*atanh(alpha));           
       }
     }
   }
-  
+*/  
   //passive scalar
   if(parameters->num_scalars == 2){
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {

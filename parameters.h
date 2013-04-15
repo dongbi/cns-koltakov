@@ -153,8 +153,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_y = false;
   stretch_in_z = false;
-  x_stretching_ratio = (T)0.; //(T)1.01;
-  y_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  x_stretching_ratio = (T)1.01; //(T)1.01;
+  y_stretching_ratio = (T)1.01; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -238,10 +238,10 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //Set_Lid_Velocity(VECTOR_3D<T>(0,-.2,0));
 
   //Progressive wave boundary condition
-  Set_West_Velocity();
+  //Set_West_Velocity();
   forcing_amp = .05;
   m = pi/y_length;
-  freq = 2.*pi/10;
+  freq = 2.*pi/30;
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
@@ -361,8 +361,8 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   T x_s = 1.; //x position at beginning of slope
   T node_s = x_s/x_length; //node at beginning of slope
 
-  T rise = .5*y_length; //in physical space
-  T run = 2.; //x_length - x_s; //in physical space
+  T rise = 0.05; //in physical space
+  T run = 1.; //x_length - x_s; //in physical space
   T slope = rise/(run/x_length); //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {
