@@ -938,10 +938,17 @@ void NAVIER_STOKES_SOLVER<T>::Add_Pressure_Gradient_Term(
   template<class T>
 void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
 {
-  if(parameters->time_step==0)
+  if(parameters->time_step==0){
     mpi_driver->Write_Global_Array_To_Disk("node_position", *grid->grid, 0, true);
-  if(parameters->save_instant_velocity)
-    //mpi_driver->Write_Binary_Local_Array("velocity", *u); 
+    //mpi_driver->Write_Binary_Local_Array("grid_x", *(*grid->grid).x); 
+    //mpi_driver->Write_Binary_Local_Array("grid_y", *(*grid->grid).y); 
+    //mpi_driver->Write_Binary_Local_Array("grid_z", *(*grid->grid).z); 
+  }
+  if(parameters->save_instant_velocity){
+    //mpi_driver->Write_Binary_Local_Array("velocity_x", *(*u).x); 
+    //mpi_driver->Write_Binary_Local_Array("velocity_y", *(*u).y);
+    //mpi_driver->Write_Binary_Local_Array("velocity_z", *(*u).z);
+  }
   if(parameters->save_pressure)
     mpi_driver->Write_Binary_Local_Array("pressure", *P); 
   if(parameters->scalar_advection){
