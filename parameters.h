@@ -239,7 +239,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //Set_Lid_Velocity(VECTOR_3D<T>(0,-.2,0));
 
   //Progressive wave boundary condition
-  Set_West_Velocity();
+  //Set_West_Velocity();
   forcing_amp = .05;
   m = pi/y_length;
   freq = 2.*pi/10.;

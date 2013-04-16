@@ -996,7 +996,7 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
       return 0;
     }
 
-    mpi_driver->Write_Binary_Local_Array(output_g, *grid->grid); 
+    mpi_driver->Write_Binary_Local_Array_Output(output_g, *grid->grid); 
     output_g.close();
   }
 
@@ -1005,17 +1005,30 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
     filename_u << parameters->output_dir << "velocity" 
       << "."<< mpi_driver->my_rank;
 
-    ofstream output_u(filename_u.str().c_str(), ios::out | ios::binary);
+    ofstream output_u(filename_u.str().c_str(), ios::out | ios::app | ios::binary);
     if(!output_u){
       cout<<"ERROR: could not open velocity file for writing"<<endl;
       return 0;
     }
 
-    output_u.seekp(ios_base::end);
-    mpi_driver->Write_Binary_Local_Array(output_u, *u); 
+    mpi_driver->Write_Binary_Local_Array_Output(output_u, *u); 
     output_u.close();
   }
+  
+  if(parameters->scalar_advection){
+    stringstream filename_rho;
+    filename_rho << parameters->output_dir << "density" 
+      << "."<< mpi_driver->my_rank;
 
+    ofstream output_rho(filename_rho.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output_rho){
+      cout<<"ERROR: could not open density file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array_Output(output_rho, *(*phi)(1)); 
+    output_rho.close();
+  }
   return 1;
 }
 
@@ -1169,7 +1182,6 @@ T Lw = .7;
 T zeta;
 
 if(parameters->scalar_advection) {
-  /*
   //Single Solitary wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1181,8 +1193,7 @@ if(parameters->scalar_advection) {
       }
     }
   }
-  */
-
+  /*
   //Progressive wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1193,7 +1204,7 @@ if(parameters->scalar_advection) {
       }
     }
   }
-
+  */
   //passive scalar
   if(parameters->num_scalars == 2){
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
