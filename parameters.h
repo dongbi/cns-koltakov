@@ -22,7 +22,8 @@ class PARAMETERS
       resolve_interface_in_y, stretch_in_x, stretch_in_y, stretch_in_z, 
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
-      turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d;
+      turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d,
+      progressive_wave, solitary_wave;
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
@@ -37,7 +38,8 @@ class PARAMETERS
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
-    omega, amp_p_grad, freq_p_grad, forcing_amp, m, freq;
+    omega, amp_p_grad, freq_p_grad, alpha, delta, ratio, rho0, a, Lw, 
+    upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, rise, run;
   std::string output_dir, grid_filename;
   int argc; 
   char** argv;
@@ -135,6 +137,8 @@ template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
   two_d = true; //two-dimensional simulation (multigrid doesn't work in z)
+  progressive_wave = true;
+  solitary_wave = false;
   scalar_advection = true;
   num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
@@ -145,6 +149,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   variable_fixed_depth = true; //sinusoidal bathymetry
   coriolis = false;  
   read_grid_from_file = false; //true;
+
   // boundary conditions
   periodic_in_x = false;
   periodic_in_y = false;
@@ -167,6 +172,22 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   save_instant_velocity = true; //save instantaneous velocity field
   save_pressure = false; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
+
+  //stratification and wave forcing
+  alpha = 0.99; //interface thickness parameter
+  delta = 0.15; //interface thickness parameter
+  ratio = 0.02; //delta_rho/rho0
+  rho0 = 1000.; //reference density
+  upper_layer_depth = 0.25; //h_1
+  a = 0.1; //solitary wave amplitude 
+  Lw = .7; //solitary wavelength 
+  forcing_amp = .05; //progressive wave amplitude
+  forcing_period = 10; //progressive wave period
+
+  //bottom bathymetry
+  x_s = 1.; //x position at beginning of slope
+  rise = 0.05; //slope rise
+  run = 1.; //slope run
 
   // multigrid
   mg_sub_levels = -1; //negative => optimal: calculated below
@@ -238,10 +259,11 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //Set_Lid_Velocity(VECTOR_3D<T>(0,-.2,0));
 
   //Progressive wave boundary condition
-  //Set_West_Velocity();
-  forcing_amp = .05;
-  m = pi/y_length;
-  freq = 2.*pi/30;
+  if(progressive_wave){
+    Set_West_Velocity();
+    m = pi/y_length; //progressive wave vertical wavenumber
+    freq = 2.*pi/forcing_period; //progressive wave frequency
+  }
 
   // setup structures for multigrid sublevels
   if(mg_sub_levels) {  
@@ -358,11 +380,7 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   if(depth) delete depth;
   depth = new ARRAY_2D<T>(i_min, i_max, k_min, k_max, halo_size);
 
-  T x_s = 1.; //x position at beginning of slope
   T node_s = x_s/x_length; //node at beginning of slope
-
-  T rise = 0.05; //in physical space
-  T run = 1.; //x_length - x_s; //in physical space
   T slope = rise/(run/x_length); //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {
