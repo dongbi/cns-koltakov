@@ -50,6 +50,7 @@ class NAVIER_STOKES_SOLVER
   void Add_Pressure_Gradient_Term(ARRAY_3D<VECTOR_3D<T> >& RHS);
 
   void Save_Simulation_Data();
+  int Save_Binary_Simulation_Data();
   int Save_Simulation_Data_For_Restart();
   int Load_Simulation_Data_For_Restart(int restart_ts);
 
@@ -96,6 +97,7 @@ void NAVIER_STOKES_SOLVER<T>::Post_Process()
   // save data ever save_data_timestep_period
   if(parameters->time_step % parameters->save_data_timestep_period == 0){
     Save_Simulation_Data();  
+    Save_Binary_Simulation_Data();
     //Save_Simulation_Data_For_Restart();
   }
 

@@ -938,25 +938,6 @@ void NAVIER_STOKES_SOLVER<T>::Add_Pressure_Gradient_Term(
   template<class T>
 void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
 {
-  if(parameters->time_step==0){
-    mpi_driver->Write_Global_Array_To_Disk("node_position", *grid->grid, 0, true);
-    //mpi_driver->Write_Binary_Local_Array("grid_x", *(*grid->grid).x); 
-    //mpi_driver->Write_Binary_Local_Array("grid_y", *(*grid->grid).y); 
-    //mpi_driver->Write_Binary_Local_Array("grid_z", *(*grid->grid).z); 
-  }
-  if(parameters->save_instant_velocity){
-    //mpi_driver->Write_Binary_Local_Array("velocity_x", *(*u).x); 
-    //mpi_driver->Write_Binary_Local_Array("velocity_y", *(*u).y);
-    //mpi_driver->Write_Binary_Local_Array("velocity_z", *(*u).z);
-  }
-  if(parameters->save_pressure)
-    mpi_driver->Write_Binary_Local_Array("pressure", *P); 
-  if(parameters->scalar_advection){
-    mpi_driver->Write_Binary_Local_Array("density", *(*phi)(1)); 
-    if(parameters->num_scalars == 2)
-      mpi_driver->Write_Binary_Local_Array("scalar", *(*phi)(2)); 
-  }
-  /*
   if(parameters->time_step==0)
     mpi_driver->Write_Global_Array_To_Disk("node_position", *grid->grid, 0, true);
   if(parameters->save_instant_velocity)
@@ -997,8 +978,46 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   //  mpi_driver->Write_Binary_Local_Array("bin_p",*P);  
   //  mpi_driver->Read_Binary_Local_Array("bin_p",*P); 
   //}
-  */
  }
+//*****************************************************************************
+// Saving binary simulation data to output directory for each proc
+//*****************************************************************************
+  template<class T>
+int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
+{
+  if(parameters->time_step==1){
+    stringstream filename_g;
+    filename_g << parameters->output_dir << "grid" 
+        << "."<< mpi_driver->my_rank;
+
+    ofstream output_g(filename_g.str().c_str(), ios::out | ios::binary);
+    if(!output_g){
+      cout<<"ERROR: could not open grid file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array(output_g, *grid->grid); 
+    output_g.close();
+  }
+
+  if(parameters->save_instant_velocity){
+    stringstream filename_u;
+    filename_u << parameters->output_dir << "velocity" 
+      << "."<< mpi_driver->my_rank;
+
+    ofstream output_u(filename_u.str().c_str(), ios::out | ios::binary);
+    if(!output_u){
+      cout<<"ERROR: could not open velocity file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array(output_u, *u); 
+    output_u.close();
+  }
+
+  return 1;
+}
+
 //*****************************************************************************
 // Saving binary restart data to output directory for each proc
 //*****************************************************************************
@@ -1140,29 +1159,29 @@ T d = parameters->depth ? (*parameters->depth)(i,k)
 //Bobby's cases
 //Set velocity and stratification
 T alpha = .99;
-T delta = .03;
-T ratio = .03; //delta_rho/rho_0
+T delta = .05;
+T ratio = .02; //delta_rho/rho_0
 T rho0 = 1000.;
 T delta_rho = ratio*rho0;  
-T a = .15;
-T Lw = 1./sqrt(3.);
+T a = .1;
+T Lw = .7;
 T zeta;
 
 if(parameters->scalar_advection) {
- /* 
+  /*
   //Single Solitary wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-  zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-  (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
-  0.5*parameters->y_length)/delta*atanh(alpha));           
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+        zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
+        (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
+              parameters->y_length/2.5)/delta*atanh(alpha));           
+      }
+    }
   }
-  }
-  }
-*/
-  
+  */
+
   //Progressive wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1173,7 +1192,7 @@ if(parameters->scalar_advection) {
       }
     }
   }
-  
+
   //passive scalar
   if(parameters->num_scalars == 2){
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {

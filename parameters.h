@@ -154,8 +154,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_y = false;
   stretch_in_z = false;
-  x_stretching_ratio = (T)1.01; //(T)1.01;
-  y_stretching_ratio = (T)1.02; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  x_stretching_ratio = (T)0.; //(T)1.01;
+  y_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -164,9 +164,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
   // saving on disk
   //save_data_timestep_period = 500; //write on disk after each period
-  save_fluxes = true; 
+  save_fluxes = false; 
   save_instant_velocity = true; //save instantaneous velocity field
-  save_pressure = true; //save pressure field
+  save_pressure = false; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
   // multigrid
