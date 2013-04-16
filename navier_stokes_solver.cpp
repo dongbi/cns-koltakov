@@ -978,7 +978,76 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   //  mpi_driver->Write_Binary_Local_Array("bin_p",*P);  
   //  mpi_driver->Read_Binary_Local_Array("bin_p",*P); 
   //}
+ }
+//*****************************************************************************
+// Saving binary simulation data to output directory for each proc
+//*****************************************************************************
+  template<class T>
+int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
+{
+  if(parameters->time_step==parameters->save_data_timestep_period){
+    stringstream filename_g;
+    filename_g << parameters->output_dir << "grid" 
+        << "."<< mpi_driver->my_rank;
+
+    ofstream output_g(filename_g.str().c_str(), ios::out | ios::binary);
+    if(!output_g){
+      cout<<"ERROR: could not open grid file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array_Output(output_g, *grid->grid); 
+    output_g.close();
+  }
+
+  if(parameters->save_instant_velocity){
+    stringstream filename_u;
+    filename_u << parameters->output_dir << "velocity" 
+      << "."<< mpi_driver->my_rank;
+
+    ofstream output_u(filename_u.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output_u){
+      cout<<"ERROR: could not open velocity file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array_Output(output_u, *u); 
+    output_u.close();
+  }
+  
+  if(parameters->scalar_advection){
+    stringstream filename_rho;
+    filename_rho << parameters->output_dir << "density" 
+      << "."<< mpi_driver->my_rank;
+
+    ofstream output_rho(filename_rho.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output_rho){
+      cout<<"ERROR: could not open density file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array_Output(output_rho, *(*phi)(1)); 
+    output_rho.close();
+  }
+
+  if(parameters->save_pressure){
+    stringstream filename_P;
+    filename_P << parameters->output_dir << "pressure" 
+      << "."<< mpi_driver->my_rank;
+
+    ofstream output_P(filename_P.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output_P){
+      cout<<"ERROR: could not open pressure file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array_Output(output_P, *P); 
+    output_P.close();
+  }
+
+  return 1;
 }
+
 //*****************************************************************************
 // Saving binary restart data to output directory for each proc
 //*****************************************************************************
@@ -1140,7 +1209,7 @@ if(parameters->scalar_advection) {
       }
     }
   }
-/*
+  /*
   //Progressive wave 
   //density
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1151,7 +1220,7 @@ if(parameters->scalar_advection) {
       }
     }
   }
-*/  
+  */
   //passive scalar
   if(parameters->num_scalars == 2){
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
@@ -1164,30 +1233,6 @@ if(parameters->scalar_advection) {
     }
   }
 }
-
-/*
-   T alpha = .99;
-   T delta = .03;
-   T ratio = .03; //delta_rho/rho_0
-   T rho0 = 1000.;
-   T delta_rho = ratio*rho0;  
-   T a = .025;
-   T Lw = 0.05;
-   T zeta;
-
-   if(parameters->scalar_advection) {
-   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-   for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-   for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-   zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-   (*rho)(i,j,k) = -.5*delta_rho*tanh(2.*((*grid)(i,j,k).y - zeta + 
-   0.5*parameters->y_length)/delta*atanh(alpha));           
-//(*u)(i,j,k).x = .1;
-}
-}
-}
-}
-*/
 
 //POSTPROCESS: enforce BCs and populate ghost cells
 assert(mpi_driver);

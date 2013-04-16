@@ -68,6 +68,11 @@ class MPI_DRIVER
     int Write_Binary_Local_Array(string a_name, ARRAY_3D<T>& a);
     void Write_Binary_Local_Array(ofstream& output,ARRAY_3D<T>& a);  
     void Write_Binary_Local_Array(ofstream& output,ARRAY_3D<VECTOR_3D<T> >& va);  
+    
+    int Write_Binary_Local_Array_Output(string a_name, ARRAY_3D<T>& a);
+    void Write_Binary_Local_Array_Output(ofstream& output,ARRAY_3D<T>& a);  
+    void Write_Binary_Local_Array_Output(ofstream& output,ARRAY_3D<VECTOR_3D<T> >& va);  
+
     int Read_Binary_Local_Array(string a_name, ARRAY_3D<T>& a);
     void Read_Binary_Local_Array(ifstream& input, ARRAY_3D<T>& a); 
     void Read_Binary_Local_Array(ifstream& input, ARRAY_3D<VECTOR_3D<T> >& va);
@@ -603,6 +608,47 @@ void MPI_DRIVER<T>::Write_Binary_Local_Array(ofstream& output,
   output.write(reinterpret_cast<char *>(vy.Raw_Array_Pointer()),sizeof(T)*size);
   output.write(reinterpret_cast<char *>(vz.Raw_Array_Pointer()),sizeof(T)*size);
 } 
+//*****************************************************************************
+// Outputs local portion of global SCALAR array to a file '$a_name.#proc'
+//*****************************************************************************
+  template <class T>
+int MPI_DRIVER<T>::Write_Binary_Local_Array_Output(string a_name, ARRAY_3D<T>& a)
+{
+  std::stringstream filename;
+  filename << output_dir << a_name << "." << my_rank; 
+
+  ofstream output(filename.str().c_str(), ios::out | ios::binary);
+  if(!output){
+    cout<<"ERROR: could not open file for writing"<<endl;
+    return 0;
+  }
+  Write_Binary_Local_Array_Output(output, a);
+  output.close();
+  return 1;
+}
+//*****************************************************************************
+// Helper: Outputs local portion of global SCALAR array to the ofstream
+//*****************************************************************************
+  template <class T>
+void MPI_DRIVER<T>::Write_Binary_Local_Array_Output(ofstream& output, ARRAY_3D<T>& a)
+{
+  int size=a.Total_Size_With_Halo();
+  output.write(reinterpret_cast<char *>(a.Raw_Array_Pointer()),sizeof(T)*size); 
+} 
+//*****************************************************************************
+// Helper: Outputs local portion of global VECTOR array to the ofstream
+//*****************************************************************************
+  template <class T>
+void MPI_DRIVER<T>::Write_Binary_Local_Array_Output(ofstream& output, 
+    ARRAY_3D<VECTOR_3D<T> >& va)
+{
+  ARRAY_3D<T> vx(va, 1), vy(va, 2), vz(va, 3);
+  int size=va.Total_Size_With_Halo();
+  output.write(reinterpret_cast<char *>(vx.Raw_Array_Pointer()),sizeof(T)*size);
+  output.write(reinterpret_cast<char *>(vy.Raw_Array_Pointer()),sizeof(T)*size);
+  output.write(reinterpret_cast<char *>(vz.Raw_Array_Pointer()),sizeof(T)*size);
+} 
+
 //*****************************************************************************
 // Loads local portion of global array from a file '$a_name.#proc' on disk
 //*****************************************************************************
