@@ -1011,6 +1011,7 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
       return 0;
     }
 
+    output_u.seekp(ios_base::end);
     mpi_driver->Write_Binary_Local_Array(output_u, *u); 
     output_u.close();
   }
