@@ -166,7 +166,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //save_data_timestep_period = 500; //write on disk after each period
   save_fluxes = false; 
   save_instant_velocity = true; //save instantaneous velocity field
-  save_pressure = false; //save pressure field
+  save_pressure = true; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
   // multigrid

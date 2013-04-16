@@ -985,7 +985,7 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   template<class T>
 int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
 {
-  if(parameters->time_step==1){
+  if(parameters->time_step==parameters->save_data_timestep_period){
     stringstream filename_g;
     filename_g << parameters->output_dir << "grid" 
         << "."<< mpi_driver->my_rank;
@@ -1029,6 +1029,22 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
     mpi_driver->Write_Binary_Local_Array_Output(output_rho, *(*phi)(1)); 
     output_rho.close();
   }
+
+  if(parameters->save_pressure){
+    stringstream filename_P;
+    filename_P << parameters->output_dir << "pressure" 
+      << "."<< mpi_driver->my_rank;
+
+    ofstream output_P(filename_P.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output_P){
+      cout<<"ERROR: could not open pressure file for writing"<<endl;
+      return 0;
+    }
+
+    mpi_driver->Write_Binary_Local_Array_Output(output_P, *P); 
+    output_P.close();
+  }
+
   return 1;
 }
 
