@@ -1028,6 +1028,21 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
 
     mpi_driver->Write_Binary_Local_Array_Output(output_rho, *(*phi)(1)); 
     output_rho.close();
+    
+    if(parameters->num_scalars==2){
+      stringstream filename_phi;
+      filename_phi << parameters->output_dir << "scalar" 
+        << "."<< mpi_driver->my_rank;
+
+      ofstream output_phi(filename_phi.str().c_str(), ios::out | ios::app | ios::binary);
+      if(!output_phi){
+        cout<<"ERROR: could not open scalar file for writing"<<endl;
+        return 0;
+      }
+
+      mpi_driver->Write_Binary_Local_Array_Output(output_phi, *(*phi)(2)); 
+      output_phi.close();
+    }
   }
 
   if(parameters->save_pressure){

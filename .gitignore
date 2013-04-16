@@ -1,6 +1,5 @@
 *~
 *.o
 test
-/mfiles/*
 /output
 tags
