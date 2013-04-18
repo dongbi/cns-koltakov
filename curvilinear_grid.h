@@ -78,7 +78,7 @@ class CURVILINEAR_GRID
   void Stretch_In_Vertical_To_Resolve_Bottom();
   void Push_Nodes_Toward_Boundaries();
   void Scale_And_Shift_Grid_Nodes_To_Fit_Physical_Domain();
-  void Adjust_Nodes_To_Resolve_Interface_In_Y(const ARRAY_1D<T>& interface_Y);
+  void Adjust_Nodes_To_Resolve_Interface_In_Z(const ARRAY_1D<T>& interface_Z);
   void Shift_Grid_Into_Parallelogram(const T slope);
 
   void Subsample_Metric_Quantities(

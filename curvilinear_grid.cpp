@@ -147,21 +147,21 @@ void CURVILINEAR_GRID<T>::Stretch_In_Horizontal_To_Resolve_Breaking()
           (*grid)(i,j,k).x = -dx_max * halo_size; //halo equal cells below 0
 }
 //*****************************************************************************
-// Stretches the vertical (y) coordinate to resolve the bottom: assumes y:[0;1]
+// Stretches the vertical (z) coordinate to resolve the bottom: assumes y:[0;1]
 //*****************************************************************************
   template<class T>
 void CURVILINEAR_GRID<T>::Stretch_In_Vertical_To_Resolve_Bottom()
 {
-  int j_local_min = mpi_driver->my_coords_in_grid[1] * j_size;
-  T r = parameters->y_stretching_ratio, 
-  dy_min = (1. - r) / (1. - pow(r,parameters->num_total_nodes_y-1));
+  int k_local_min = mpi_driver->my_coords_in_grid[2] * k_size;
+  T r = parameters->z_stretching_ratio, 
+  dz_min = (1. - r) / (1. - pow(r,parameters->num_total_nodes_z-1));
   for(int i = i_min_w_h; i <= i_max_w_h; i++)
     for(int j = j_min_w_h; j <= j_max_w_h; j++)
       for(int k = k_min_w_h; k <= k_max_w_h; k++)
-        if(j_local_min+j-1 >= j_min_w_h)
-          (*grid)(i,j,k).y = dy_min * (1. - pow(r,j_local_min+j-1)) / (1. - r);
+        if(k_local_min+j-1 >= k_min_w_h)
+          (*grid)(i,j,k).z = dz_min * (1. - pow(r,k_local_min+j-1)) / (1. - r);
         else
-          (*grid)(i,j,k).y = -dy_min * halo_size; //halo equal cells below 0
+          (*grid)(i,j,k).z = -dz_min * halo_size; //halo equal cells below 0
 }
 //*****************************************************************************
 // Reads node locations from file: 1 Proc version
@@ -204,7 +204,7 @@ void CURVILINEAR_GRID<T>::Custom_Adjust_Local_Grid_Node_Positions()
     Push_Nodes_Toward_Boundaries();
 
   if(parameters->x_stretching_ratio) Stretch_In_Horizontal_To_Resolve_Breaking();
-  if(parameters->y_stretching_ratio) Stretch_In_Vertical_To_Resolve_Bottom();
+  if(parameters->z_stretching_ratio) Stretch_In_Vertical_To_Resolve_Bottom();
 
   //Set depth(:,:) based on node positions (modified from uniform grid)
   parameters->Set_Depth_Based_On_Node_Locations(*this->grid);
@@ -214,9 +214,9 @@ void CURVILINEAR_GRID<T>::Custom_Adjust_Local_Grid_Node_Positions()
   Scale_And_Shift_Grid_Nodes_To_Fit_Physical_Domain();
 
   //Increase resolution around an interface in Y (push nodes towards the middle)
-  if(parameters->resolve_interface_in_y){
-    ARRAY_1D<T> interface_in_Y(i_size_w_h, i_min_w_h,(T)1);
-    Adjust_Nodes_To_Resolve_Interface_In_Y(interface_in_Y);
+  if(parameters->resolve_interface_in_z){
+    ARRAY_1D<T> interface_in_Z(i_size_w_h, i_min_w_h,(T)1);
+    Adjust_Nodes_To_Resolve_Interface_In_Z(interface_in_Z);
   }
 }
 //*****************************************************************************
@@ -463,11 +463,11 @@ void CURVILINEAR_GRID<T>::Create_Update_Subgrids(bool create_data_structures)
       }
 
       nx_sub = nx / 2;
-      ny_sub = ny / 2;
+      nz_sub = nz / 2;
       if(!parameters->two_d)
-        nz_sub = nz / 2;
+        ny_sub = ny / 2;
       else
-        nz_sub = nz;
+        ny_sub = ny;
 
       (*num_x_sub)(level) = nx_sub;
       (*num_y_sub)(level) = ny_sub;
@@ -706,23 +706,23 @@ T CURVILINEAR_GRID<T>::Calculate_Domain_Volume()
 // it is (= 1) for the undisturbed interface.
 //*****************************************************************************
   template<class T>
-void CURVILINEAR_GRID<T>::Adjust_Nodes_To_Resolve_Interface_In_Y(
-    const ARRAY_1D<T>& interface_Y)
+void CURVILINEAR_GRID<T>::Adjust_Nodes_To_Resolve_Interface_In_Z(
+    const ARRAY_1D<T>& interface_Z)
 {
-  assert(interface_Y.Min_Index() == i_min_w_h);
-  assert(interface_Y.Max_Index() == i_max_w_h);
+  assert(interface_Z.Min_Index() == i_min_w_h);
+  assert(interface_Z.Max_Index() == i_max_w_h);
   T ap = (T)4;
-  T dp = 1.;//abs(y_min);
+  T dp = 1.;//abs(z_min);
   for (int i=i_min_w_h; i<=i_max_w_h; i++)
     for (int j=j_min_w_h; j<=j_max_w_h; j++)
       for (int k=k_min_w_h; k<=k_max_w_h; k++){
-        T y = (*grid)(i,j,k).y;
-        (*grid)(i,j,k).y = interface_Y(i)
-          * (exp(ap*y)-exp(-ap*dp)) / ((T)1-exp(-ap*dp));
-        (*grid)(i,j,k).y -= ((T)2-interface_Y(i))
-          * (exp(ap*(-1.-y))-exp(-ap*dp)) / ((T)1-exp(-ap*dp)) 
-          + interface_Y(i);
-        (*grid)(i,j,k).y *= .5*dp;
+        T z = (*grid)(i,j,k).z;
+        (*grid)(i,j,k).z = interface_Z(i)
+          * (exp(ap*z)-exp(-ap*dp)) / ((T)1-exp(-ap*dp));
+        (*grid)(i,j,k).z -= ((T)2-interface_Z(i))
+          * (exp(ap*(-1.-z))-exp(-ap*dp)) / ((T)1-exp(-ap*dp)) 
+          + interface_Z(i);
+        (*grid)(i,j,k).z *= .5*dp;
       }
 }  
 //*****************************************************************************
@@ -786,12 +786,12 @@ void CURVILINEAR_GRID<T>::Scale_And_Shift_Grid_Nodes_To_Fit_Physical_Domain()
       for (int k=k_min_w_h; k<=k_max_w_h; k++){
         (*grid)(i,j,k).x *= x_length; (*grid)(i,j,k).x += x_min; 
         if(parameters->depth){
-          (*grid)(i,j,k).y *= (*parameters->depth)(i,k); 
-          (*grid)(i,j,k).y -= (*parameters->depth)(i,k); 
+          (*grid)(i,j,k).z *= (*parameters->depth)(i,j); 
+          (*grid)(i,j,k).z -= (*parameters->depth)(i,j); 
         }else{
-          (*grid)(i,j,k).y *= y_length; (*grid)(i,j,k).y += y_min;
+          (*grid)(i,j,k).z *= z_length; (*grid)(i,j,k).z += z_min;
         }
-        (*grid)(i,j,k).z *= z_length; (*grid)(i,j,k).z += z_min;
+        (*grid)(i,j,k).y *= y_length; (*grid)(i,j,k).y += y_min;
       }
 } 
 //*****************************************************************************
@@ -800,16 +800,16 @@ void CURVILINEAR_GRID<T>::Scale_And_Shift_Grid_Nodes_To_Fit_Physical_Domain()
   template<class T>
 void CURVILINEAR_GRID<T>::Shift_Grid_Into_Parallelogram(const T angle_in_deg)
 {
-  T dy = y_length / (parameters->num_total_nodes_y-1),
-    shift_value = dy/tan((T)3.1415*angle_in_deg/(T)180);
+  T dz = z_length / (parameters->num_total_nodes_z-1),
+    shift_value = dz/tan((T)3.1415*angle_in_deg/(T)180);
 
   for(int i=i_min_w_h; i<=i_max_w_h; i++)
     for(int j=j_min_w_h; j<=j_max_w_h; j++)
       for(int k=k_min_w_h; k<=k_max_w_h; k++)
-        (*grid)(i,j,k).x += shift_value*(j-j_min_w_h);
+        (*grid)(i,j,k).x += shift_value*(k-k_min_w_h);
 
   // update x_max with the delta shift of the top layer
-  parameters->x_max += shift_value*(j_max_w_h-j_min_w_h);
+  parameters->x_max += shift_value*(k_max_w_h-k_min_w_h);
 }
 //*****************************************************************************
 template class CURVILINEAR_GRID<double>;

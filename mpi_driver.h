@@ -142,20 +142,20 @@ void MPI_DRIVER<T>::Initialize_MPI(int argc, char* argv[],
 
   // find ranks of neighbors
   MPI_Cart_shift(grid_comm, 0, 1, &west_proc, &east_proc);
-  MPI_Cart_shift(grid_comm, 1, 1, &suth_proc, &nrth_proc);  
-  MPI_Cart_shift(grid_comm, 2, 1, &back_proc, &frnt_proc);
+  MPI_Cart_shift(grid_comm, 1, 1, &frnt_proc, &back_proc);  
+  MPI_Cart_shift(grid_comm, 2, 1, &suth_proc, &nrth_proc);
   // save lower and upper index bounds for local domains
   if(west_proc!=MPI_PROC_NULL) local_grid_lower_bound[0]=0; 
   else local_grid_lower_bound[0]=1;
   if(east_proc!=MPI_PROC_NULL) local_grid_upper_bound[0]=local_size_x; 
   else local_grid_upper_bound[0]=local_size_x-1;
-  if(suth_proc!=MPI_PROC_NULL) local_grid_lower_bound[1]=0; 
+  if(frnt_proc!=MPI_PROC_NULL) local_grid_lower_bound[1]=0; 
   else local_grid_lower_bound[1]=1;
-  if(nrth_proc!=MPI_PROC_NULL) local_grid_upper_bound[1]=local_size_y; 
+  if(back_proc!=MPI_PROC_NULL) local_grid_upper_bound[1]=local_size_y; 
   else local_grid_upper_bound[1]=local_size_y-1;
-  if(back_proc!=MPI_PROC_NULL) local_grid_lower_bound[2]=0; 
+  if(suth_proc!=MPI_PROC_NULL) local_grid_lower_bound[2]=0; 
   else local_grid_lower_bound[2]=1;
-  if(frnt_proc!=MPI_PROC_NULL) local_grid_upper_bound[2]=local_size_z; 
+  if(nrth_proc!=MPI_PROC_NULL) local_grid_upper_bound[2]=local_size_z; 
   else local_grid_upper_bound[2]=local_size_z-1;
   // save processor Cartesian grid cooordinates in a file
   Save_Procs_Coordinates_In_File(proc_coords_filename);
@@ -944,14 +944,14 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Scalar_Field(ARRAY_3D<T>& scalar,
     send_west_message[Z_size][Y_size][Halo_size],
     recv_east_message[Z_size][Y_size][Halo_size], 
     send_east_message[Z_size][Y_size][Halo_size],
-    recv_suth_message[Z_size][X_size][Halo_size], 
-    send_suth_message[Z_size][X_size][Halo_size],
-    recv_nrth_message[Z_size][X_size][Halo_size], 
-    send_nrth_message[Z_size][X_size][Halo_size],
-    recv_back_message[Y_size][X_size][Halo_size], 
-    send_back_message[Y_size][X_size][Halo_size],
-    recv_frnt_message[Y_size][X_size][Halo_size], 
-    send_frnt_message[Y_size][X_size][Halo_size];
+    recv_suth_message[Y_size][X_size][Halo_size], 
+    send_suth_message[Y_size][X_size][Halo_size],
+    recv_nrth_message[Y_size][X_size][Halo_size], 
+    send_nrth_message[Y_size][X_size][Halo_size],
+    recv_back_message[Z_size][X_size][Halo_size], 
+    send_back_message[Z_size][X_size][Halo_size],
+    recv_frnt_message[Z_size][X_size][Halo_size], 
+    send_frnt_message[Z_size][X_size][Halo_size];
 
   // exchange in I-DIRECTION: east-west
 
@@ -999,30 +999,78 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Scalar_Field(ARRAY_3D<T>& scalar,
           scalar(i_index,j,k) = recv_east_message[k-min_Z][j-min_Y][h]; 
         }
 
-  // exchange in J-DIRECTION: south-north
+  // exchange in J-DIRECTION: front-back
 
   //send-receive ghost values  
-  if(suth_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_suth_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
-        suth_proc, 0, grid_comm, &request[request_counter++]);
+  if(frnt_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_frnt_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
+        frnt_proc, 0, grid_comm, &request[request_counter++]);
     for(int k=min_Z; k <= max_Z; k++)
       for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++)
-          send_suth_message[k-min_Z][i-min_X][h] = scalar(i,h+1,k); //j=1,2(h=2)
-    MPI_Isend(send_suth_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
-        suth_proc, 1, grid_comm, &request[request_counter++]);
+        for(int h=0; h < Halo_size; h++) 
+          send_frnt_message[k-min_Z][i-min_X][h] = scalar(i,h+1,k); //j=1,2(h=2)
+    MPI_Isend(send_frnt_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
+        frnt_proc, 1, grid_comm, &request[request_counter++]);
   }
 
-  if(nrth_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_nrth_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
-        nrth_proc, 1, grid_comm, &request[request_counter++]);
+  if(back_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_back_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
+        back_proc, 1, grid_comm, &request[request_counter++]);
     for(int k=min_Z; k <= max_Z; k++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
           int j_index = max_Y - 2*Halo_size + h+1; // j=n-1,n (halo=2)
-          send_nrth_message[k-min_Z][i-min_X][h]=scalar(i,j_index,k);
+          send_back_message[k-min_Z][i-min_X][h]=scalar(i,j_index,k);
         }
-    MPI_Isend(send_nrth_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
+    MPI_Isend(send_back_message, Z_size*X_size*Halo_size, MPI_DOUBLE, 
+        back_proc, 0, grid_comm, &request[request_counter++]);
+  }
+
+  // wait until exchange completes
+  MPI_Waitall(request_counter, request, status); 
+  request_counter = 0;
+
+  // assign received values
+  if(frnt_proc != MPI_PROC_NULL)
+    for(int k=min_Z; k <= max_Z; k++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          int j_index = -Halo_size + (h+1); // j=-1,0 (if halo=2)
+          scalar(i,j_index,k) = recv_frnt_message[k-min_Z][i-min_X][h];
+        }
+
+  if(back_proc != MPI_PROC_NULL)
+    for(int k=min_Z; k <= max_Z; k++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          int j_index = max_Y - Halo_size + (h+1); // j=n+1,n+2 (if halo=2)
+          scalar(i,j_index,k) = recv_back_message[k-min_Z][i-min_X][h]; 
+        }
+
+  // exchange in K-DIRECTION: south-north
+
+  //send-receive ghost values  
+  if(suth_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_suth_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
+        suth_proc, 0, grid_comm, &request[request_counter++]);
+    for(int j=min_Y; j <= max_Y; j++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++)
+          send_suth_message[j-min_Y][i-min_X][h] = scalar(i,j,h+1); //k=1,2(h=2)
+    MPI_Isend(send_suth_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
+        suth_proc, 1, grid_comm, &request[request_counter++]);
+  }
+
+  if(nrth_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_nrth_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
+        nrth_proc, 1, grid_comm, &request[request_counter++]);
+    for(int j=min_Y; j <= max_Y; j++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          int k_index = max_Z - 2*Halo_size + h+1; // k=n-1,n (if halo=2)
+          send_nrth_message[j-min_Y][i-min_X][h]=scalar(i,j,k_index);
+        }
+    MPI_Isend(send_nrth_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
         nrth_proc, 0, grid_comm, &request[request_counter++]);
   }
 
@@ -1032,65 +1080,18 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Scalar_Field(ARRAY_3D<T>& scalar,
 
   // assign received values
   if(suth_proc != MPI_PROC_NULL)
-    for(int k=min_Z; k <= max_Z; k++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          int j_index = -Halo_size + (h+1); // j=-1,0 (if halo=2)
-          scalar(i,j_index,k) = recv_suth_message[k-min_Z][i-min_X][h];
-        }
-  if(nrth_proc != MPI_PROC_NULL)
-    for(int k=min_Z; k <= max_Z; k++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          int j_index = max_Y - Halo_size + (h+1); // j=n+1,n+2 (if halo=2)
-          scalar(i,j_index,k) = recv_nrth_message[k-min_Z][i-min_X][h]; 
-        }
-
-  // exchange in K-DIRECTION: back-frnt
-
-  //send-receive ghost values  
-  if(back_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_back_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
-        back_proc, 0, grid_comm, &request[request_counter++]);
-    for(int j=min_Y; j <= max_Y; j++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++)
-          send_back_message[j-min_Y][i-min_X][h] = scalar(i,j,h+1); //k=1,2(h=2)
-    MPI_Isend(send_back_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
-        back_proc, 1, grid_comm, &request[request_counter++]);
-  }
-
-  if(frnt_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_frnt_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
-        frnt_proc, 1, grid_comm, &request[request_counter++]);
-    for(int j=min_Y; j <= max_Y; j++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          int k_index = max_Z - 2*Halo_size + h+1; // k=n-1,n (if halo=2)
-          send_frnt_message[j-min_Y][i-min_X][h]=scalar(i,j,k_index);
-        }
-    MPI_Isend(send_frnt_message, Y_size*X_size*Halo_size, MPI_DOUBLE, 
-        frnt_proc, 0, grid_comm, &request[request_counter++]);
-  }
-
-  // wait until exchange completes
-  MPI_Waitall(request_counter, request, status); 
-  request_counter = 0;
-
-  // assign received values
-  if(back_proc != MPI_PROC_NULL)
     for(int j=min_Y; j <= max_Y; j++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
           int k_index = -Halo_size+(h+1); // k=-1,0 (if halo=2)
-          scalar(i,j,k_index) = recv_back_message[j-min_Y][i-min_X][h];
+          scalar(i,j,k_index) = recv_suth_message[j-min_Y][i-min_X][h];
         }
-  if(frnt_proc != MPI_PROC_NULL)
+  if(nrth_proc != MPI_PROC_NULL)
     for(int j=min_Y; j <= max_Y; j++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
           int k_index = max_Z - Halo_size + (h+1); // k=n+1,n+2 (if halo=2)
-          scalar(i,j,k_index) = recv_frnt_message[j-min_Y][i-min_X][h]; 
+          scalar(i,j,k_index) = recv_nrth_message[j-min_Y][i-min_X][h]; 
         }
 }
 //*****************************************************************************
@@ -1115,14 +1116,14 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Vector_Field(
     send_west_message[Z_size][Y_size][Halo_size][3],
     recv_east_message[Z_size][Y_size][Halo_size][3], 
     send_east_message[Z_size][Y_size][Halo_size][3],
-    recv_suth_message[Z_size][X_size][Halo_size][3], 
-    send_suth_message[Z_size][X_size][Halo_size][3],
-    recv_nrth_message[Z_size][X_size][Halo_size][3], 
-    send_nrth_message[Z_size][X_size][Halo_size][3],
-    recv_back_message[Y_size][X_size][Halo_size][3], 
-    send_back_message[Y_size][X_size][Halo_size][3],
-    recv_frnt_message[Y_size][X_size][Halo_size][3], 
-    send_frnt_message[Y_size][X_size][Halo_size][3];
+    recv_suth_message[Y_size][X_size][Halo_size][3], 
+    send_suth_message[Y_size][X_size][Halo_size][3],
+    recv_nrth_message[Y_size][X_size][Halo_size][3], 
+    send_nrth_message[Y_size][X_size][Halo_size][3],
+    recv_back_message[Z_size][X_size][Halo_size][3], 
+    send_back_message[Z_size][X_size][Halo_size][3],
+    recv_frnt_message[Z_size][X_size][Halo_size][3], 
+    send_frnt_message[Z_size][X_size][Halo_size][3];
 
   // exchange in I-DIRECTION: east-west
 
@@ -1180,35 +1181,91 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Vector_Field(
           vector(i_index,j,k).z = recv_east_message[k-min_Z][j-min_Y][h][2]; 
         }
 
-  // exchange in J-DIRECTION: south-north
+  // exchange in J-DIRECTION: front-back
 
   //send-receive ghost values  
-  if(suth_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_suth_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        suth_proc, 0, grid_comm, &request[request_counter++]);
+  if(frnt_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_frnt_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        frnt_proc, 0, grid_comm, &request[request_counter++]);
     for(int k=min_Z; k <= max_Z; k++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
-          send_suth_message[k-min_Z][i-min_X][h][0] = vector(i,h+1,k).x; //j=1,2
-          send_suth_message[k-min_Z][i-min_X][h][1] = vector(i,h+1,k).y;
-          send_suth_message[k-min_Z][i-min_X][h][2] = vector(i,h+1,k).z;
+          send_frnt_message[k-min_Z][i-min_X][h][0] = vector(i,h+1,k).x; //j=1,2
+          send_frnt_message[k-min_Z][i-min_X][h][1] = vector(i,h+1,k).y;
+          send_frnt_message[k-min_Z][i-min_X][h][2] = vector(i,h+1,k).z;
         }
-    MPI_Isend(send_suth_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        suth_proc, 1, grid_comm, &request[request_counter++]);
+    MPI_Isend(send_frnt_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        frnt_proc, 1, grid_comm, &request[request_counter++]);
   }
 
-  if(nrth_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_nrth_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        nrth_proc, 1, grid_comm, &request[request_counter++]);
+  if(back_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_back_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        back_proc, 1, grid_comm, &request[request_counter++]);
     for(int k=min_Z; k <= max_Z; k++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
           int j_index = max_Y - 2*Halo_size + h+1; // j=n-1,n (halo=2)
-          send_nrth_message[k-min_Z][i-min_X][h][0] = vector(i,j_index,k).x;
-          send_nrth_message[k-min_Z][i-min_X][h][1] = vector(i,j_index,k).y;
-          send_nrth_message[k-min_Z][i-min_X][h][2] = vector(i,j_index,k).z;
+          send_back_message[k-min_Z][i-min_X][h][0] = vector(i,j_index,k).x;
+          send_back_message[k-min_Z][i-min_X][h][1] = vector(i,j_index,k).y;
+          send_back_message[k-min_Z][i-min_X][h][2] = vector(i,j_index,k).z;
         }
-    MPI_Isend(send_nrth_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
+    MPI_Isend(send_back_message, Z_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        back_proc, 0, grid_comm, &request[request_counter++]);
+  }
+
+  // wait until exchange completes
+  MPI_Waitall(request_counter, request, status); 
+  request_counter = 0;
+
+  // assign received values
+  if(frnt_proc != MPI_PROC_NULL)
+    for(int k=min_Z; k <= max_Z; k++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          int j_index = -Halo_size + (h+1); // j=-1,0 (if halo=2)
+          vector(i,j_index,k).x = recv_frnt_message[k-min_Z][i-min_X][h][0];
+          vector(i,j_index,k).y = recv_frnt_message[k-min_Z][i-min_X][h][1];
+          vector(i,j_index,k).z = recv_frnt_message[k-min_Z][i-min_X][h][2];
+        }
+  if(back_proc != MPI_PROC_NULL)
+    for(int k=min_Z; k <= max_Z; k++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          int j_index = max_Y - Halo_size + (h+1); // j=n+1,n+2 (if halo=2)
+          vector(i,j_index,k).x = recv_back_message[k-min_Z][i-min_X][h][0]; 
+          vector(i,j_index,k).y = recv_back_message[k-min_Z][i-min_X][h][1]; 
+          vector(i,j_index,k).z = recv_back_message[k-min_Z][i-min_X][h][2]; 
+        }
+
+  // exchange in K-DIRECTION: south-north
+
+  //send-receive ghost values  
+  if(suth_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_suth_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        suth_proc, 0, grid_comm, &request[request_counter++]);
+    for(int j=min_Y; j <= max_Y; j++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          send_suth_message[j-min_Y][i-min_X][h][0] = vector(i,j,h+1).x;//k=1,2
+          send_suth_message[j-min_Y][i-min_X][h][1] = vector(i,j,h+1).y;
+          send_suth_message[j-min_Y][i-min_X][h][2] = vector(i,j,h+1).z;
+        }
+    MPI_Isend(send_suth_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        suth_proc, 1, grid_comm, &request[request_counter++]);
+  }
+
+  if(nrth_proc != MPI_PROC_NULL) {
+    MPI_Irecv(recv_nrth_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
+        nrth_proc, 1, grid_comm, &request[request_counter++]);
+    for(int j=min_Y; j <= max_Y; j++)
+      for(int i=min_X; i <= max_X; i++)
+        for(int h=0; h < Halo_size; h++){
+          int k_index = max_Z - 2*Halo_size + h+1; // k=n-1,n (if halo=2)
+          send_nrth_message[j-min_Y][i-min_X][h][0] = vector(i,j,k_index).x;
+          send_nrth_message[j-min_Y][i-min_X][h][1] = vector(i,j,k_index).y;
+          send_nrth_message[j-min_Y][i-min_X][h][2] = vector(i,j,k_index).z;
+        }
+    MPI_Isend(send_nrth_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
         nrth_proc, 0, grid_comm, &request[request_counter++]);
   }
 
@@ -1218,78 +1275,22 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Vector_Field(
 
   // assign received values
   if(suth_proc != MPI_PROC_NULL)
-    for(int k=min_Z; k <= max_Z; k++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          int j_index = -Halo_size + (h+1); // j=-1,0 (if halo=2)
-          vector(i,j_index,k).x = recv_suth_message[k-min_Z][i-min_X][h][0];
-          vector(i,j_index,k).y = recv_suth_message[k-min_Z][i-min_X][h][1];
-          vector(i,j_index,k).z = recv_suth_message[k-min_Z][i-min_X][h][2];
-        }
-  if(nrth_proc != MPI_PROC_NULL)
-    for(int k=min_Z; k <= max_Z; k++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          int j_index = max_Y - Halo_size + (h+1); // j=n+1,n+2 (if halo=2)
-          vector(i,j_index,k).x = recv_nrth_message[k-min_Z][i-min_X][h][0]; 
-          vector(i,j_index,k).y = recv_nrth_message[k-min_Z][i-min_X][h][1]; 
-          vector(i,j_index,k).z = recv_nrth_message[k-min_Z][i-min_X][h][2]; 
-        }
-
-  // exchange in K-DIRECTION: back-frnt
-
-  //send-receive ghost values  
-  if(back_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_back_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        back_proc, 0, grid_comm, &request[request_counter++]);
-    for(int j=min_Y; j <= max_Y; j++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          send_back_message[j-min_Y][i-min_X][h][0] = vector(i,j,h+1).x;//k=1,2
-          send_back_message[j-min_Y][i-min_X][h][1] = vector(i,j,h+1).y;
-          send_back_message[j-min_Y][i-min_X][h][2] = vector(i,j,h+1).z;
-        }
-    MPI_Isend(send_back_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        back_proc, 1, grid_comm, &request[request_counter++]);
-  }
-
-  if(frnt_proc != MPI_PROC_NULL) {
-    MPI_Irecv(recv_frnt_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        frnt_proc, 1, grid_comm, &request[request_counter++]);
-    for(int j=min_Y; j <= max_Y; j++)
-      for(int i=min_X; i <= max_X; i++)
-        for(int h=0; h < Halo_size; h++){
-          int k_index = max_Z - 2*Halo_size + h+1; // k=n-1,n (if halo=2)
-          send_frnt_message[j-min_Y][i-min_X][h][0] = vector(i,j,k_index).x;
-          send_frnt_message[j-min_Y][i-min_X][h][1] = vector(i,j,k_index).y;
-          send_frnt_message[j-min_Y][i-min_X][h][2] = vector(i,j,k_index).z;
-        }
-    MPI_Isend(send_frnt_message, Y_size*X_size*Halo_size*3, MPI_DOUBLE, 
-        frnt_proc, 0, grid_comm, &request[request_counter++]);
-  }
-
-  // wait until exchange completes
-  MPI_Waitall(request_counter, request, status); 
-  request_counter = 0;
-
-  // assign received values
-  if(back_proc != MPI_PROC_NULL)
     for(int j=min_Y; j <= max_Y; j++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
           int k_index = -Halo_size+(h+1); // k=-1,0 (if halo=2)
-          vector(i,j,k_index).x = recv_back_message[j-min_Y][i-min_X][h][0];
-          vector(i,j,k_index).y = recv_back_message[j-min_Y][i-min_X][h][1];
-          vector(i,j,k_index).z = recv_back_message[j-min_Y][i-min_X][h][2];
+          vector(i,j,k_index).x = recv_suth_message[j-min_Y][i-min_X][h][0];
+          vector(i,j,k_index).y = recv_suth_message[j-min_Y][i-min_X][h][1];
+          vector(i,j,k_index).z = recv_suth_message[j-min_Y][i-min_X][h][2];
         }
-  if(frnt_proc != MPI_PROC_NULL)
+  if(nrth_proc != MPI_PROC_NULL)
     for(int j=min_Y; j <= max_Y; j++)
       for(int i=min_X; i <= max_X; i++)
         for(int h=0; h < Halo_size; h++){
           int k_index = max_Z - Halo_size + (h+1); // k=n+1,n+2 (if halo=2)
-          vector(i,j,k_index).x = recv_frnt_message[j-min_Y][i-min_X][h][0];
-          vector(i,j,k_index).y = recv_frnt_message[j-min_Y][i-min_X][h][1];
-          vector(i,j,k_index).z = recv_frnt_message[j-min_Y][i-min_X][h][2];
+          vector(i,j,k_index).x = recv_nrth_message[j-min_Y][i-min_X][h][0];
+          vector(i,j,k_index).y = recv_nrth_message[j-min_Y][i-min_X][h][1];
+          vector(i,j,k_index).z = recv_nrth_message[j-min_Y][i-min_X][h][2];
         }
 }
 //*****************************************************************************

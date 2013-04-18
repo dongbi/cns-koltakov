@@ -19,7 +19,7 @@ class PARAMETERS
 {
  public:
  bool periodic_in_x, periodic_in_y, periodic_in_z, 
-      resolve_interface_in_y, stretch_in_x, stretch_in_y, stretch_in_z, 
+      resolve_interface_in_z, stretch_in_x, stretch_in_y, stretch_in_z, 
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
       turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d,
@@ -34,7 +34,7 @@ class PARAMETERS
   int i_min_w_h, i_max_w_h, j_min_w_h, j_max_w_h, k_min_w_h, k_max_w_h,
       i_min, i_max, j_min, j_max, k_min, k_max;
   T x_min, x_max, y_min, y_max, z_min, z_max, x_length, y_length, z_length,
-    domain_skew_angle, x_stretching_ratio, y_stretching_ratio;
+    domain_skew_angle, x_stretching_ratio, z_stretching_ratio;
   T mg_smoothing_converg_thresh, mg_tol_absolute_resid, mg_tol_error_resid, 
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
@@ -136,9 +136,9 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  two_d = true; //two-dimensional simulation (multigrid doesn't work in z)
-  progressive_wave = true;
-  solitary_wave = false;
+  two_d = true; //two-dimensional simulation (multigrid doesn't work in y)
+  progressive_wave = false;
+  solitary_wave = true;
   scalar_advection = true;
   num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
@@ -151,15 +151,15 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   read_grid_from_file = false; //true;
 
   // boundary conditions
-  periodic_in_x = false;
-  periodic_in_y = false;
-  periodic_in_z = true;
-  resolve_interface_in_y = false;//true;// move nodes towards mid-depth
+  periodic_in_x = false; //horizontal
+  periodic_in_z = false; //vertical
+  periodic_in_y = true; //transverse
+  resolve_interface_in_z = false;//true;// move nodes towards mid-depth
   stretch_in_x = false;   // move nodes towards the boundary
-  stretch_in_y = false;
   stretch_in_z = false;
+  stretch_in_y = false;
   x_stretching_ratio = (T)0.; //(T)1.01;
-  y_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  z_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -237,7 +237,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   if(mg_sub_levels<0){
     int mn;
     if(two_d) {
-      mn = min(num_local_nodes_x,num_local_nodes_y);
+      mn = min(num_local_nodes_x,num_local_nodes_z);
       mg_sub_levels = log(mn)/log(2);
     }
     else {
@@ -256,12 +256,12 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  //Set_Lid_Velocity(VECTOR_3D<T>(0,-.2,0));
+  //Set_Lid_Velocity(VECTOR_3D<T>(0,0,-.2));
 
   //Progressive wave boundary condition
   if(progressive_wave){
     Set_West_Velocity();
-    m = pi/y_length; //progressive wave vertical wavenumber
+    m = pi/z_length; //progressive wave vertical wavenumber
     freq = 2.*pi/forcing_period; //progressive wave frequency
   }
 
@@ -270,9 +270,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     //check if there are enough nodes for all sublevels (i.e., div 2^num_levs)
     int divisor = pow(2, mg_sub_levels);
     assert(num_local_nodes_x % divisor == 0);
-    assert(num_local_nodes_y % divisor == 0);
+    assert(num_local_nodes_z % divisor == 0);
     if(!two_d)
-      assert(num_local_nodes_z % divisor == 0);
+      assert(num_local_nodes_y % divisor == 0);
     // setting up structures for multigrid subgrids
     num_subgrid_total_nodes_x = new int[mg_sub_levels];
     num_subgrid_total_nodes_y = new int[mg_sub_levels];
@@ -284,11 +284,11 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
 
     for(int n = 0; n < mg_sub_levels; n++) {
       num_subgrid_total_nodes_x[n] = num_total_nodes_x / pow(2,n+1);
-      num_subgrid_total_nodes_y[n] = num_total_nodes_y / pow(2,n+1);
+      num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);
       if(two_d)
-        num_subgrid_total_nodes_z[n] = num_total_nodes_z;  
+        num_subgrid_total_nodes_y[n] = num_total_nodes_y;  
       else
-        num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);  
+        num_subgrid_total_nodes_y[n] = num_total_nodes_y / pow(2,n+1);  
       num_subgrid_local_nodes_x[n] = num_subgrid_total_nodes_x[n] / num_cpu_x;
       num_subgrid_local_nodes_y[n] = num_subgrid_total_nodes_y[n] / num_cpu_y;
       num_subgrid_local_nodes_z[n] = num_subgrid_total_nodes_z[n] / num_cpu_z;
@@ -305,10 +305,10 @@ template<class T>
 void PARAMETERS<T>::Set_Lid_Velocity(const VECTOR_3D<T>& v)
 {
   if(lid_velocity) delete lid_velocity;
-  lid_velocity = new ARRAY_2D<VECTOR_3D<T> >(i_min,i_max,k_min,k_max,halo_size);
+  lid_velocity = new ARRAY_2D<VECTOR_3D<T> >(i_min,i_max,j_min,j_max,halo_size);
   for(int i=i_min_w_h; i<=i_max_w_h; i++)
-    for(int k=k_min_w_h; k<=k_max_w_h; k++)
-      (*lid_velocity)(i,k) = v;
+    for(int j=j_min_w_h; j<=j_max_w_h; j++)
+      (*lid_velocity)(i,j) = v;
 }
 //*****************************************************************************
 // Sets velocity of the west boundary: used for progressive wave case 
@@ -347,11 +347,11 @@ void PARAMETERS<T>::Init_Depth_With_Random_Perturbation(const T pert_amplitude)
   srand(time(NULL));
 
   for(int i=i_min_w_h; i<=i_max_w_h; i++)
-    for(int k=k_min_w_h; k<=k_max_w_h; k++)
-      (*depth)(i,k) = init_depth + 2*pert_amplitude * (rand() / (T)RAND_MAX);
+    for(int j=j_min_w_h; j<=j_max_w_h; j++)
+      (*depth)(i,j) = init_depth + 2*pert_amplitude * (rand() / (T)RAND_MAX);
 }
 //*****************************************************************************
-// Sets depth(i,k) based on node locations for non-uniform grids, nodes:[0,1]
+// Sets depth(i,j) based on node locations for non-uniform grids, nodes:[0,1]
 // Sinusoidal bottom
 //*****************************************************************************
 template<class T>
@@ -365,12 +365,12 @@ void PARAMETERS<T>::Init_Depth_With_Sinusoid_Perturbation_In_X_Direction(
     shift = 0.;//(T).5/(T)num_total_nodes_x;
   //cout<<"nodes(i,j_min,k).x-shift="<<nodes(1,1,1).x-shift<<endl;
   for (int i=i_min_w_h; i<=i_max_w_h; i++)
-    for (int k=k_min_w_h; k<=k_max_w_h; k++)
-      (*depth)(i,k) = y_length - pert_amplitude +
-	pert_amplitude * sin(period*(nodes(i,j_min,k).x-shift));
+    for (int j=j_min_w_h; j<=j_max_w_h; j++)
+      (*depth)(i,j) = z_length - pert_amplitude +
+	pert_amplitude * sin(period*(nodes(i,j,k_min).x-shift));
 }
 //*****************************************************************************
-// Sets depth(i,k) based on node locations for non-uniform grids, nodes:[0,1]
+// Sets depth(i,j) based on node locations for non-uniform grids, nodes:[0,1]
 // Sloping bottom
 //*****************************************************************************
 template<class T>
@@ -384,14 +384,11 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   T slope = rise/(run/x_length); //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {
-    for (int k=k_min_w_h; k<=k_max_w_h; k++) {
-      if (nodes(i,j_min,k).x < node_s)
-        (*depth)(i,k) = y_length; 
+    for (int j=j_min_w_h; j<=j_max_w_h; j++) {
+      if (nodes(i,j,k_min).x < node_s)
+        (*depth)(i,j) = z_length; 
       else
-        (*depth)(i,k) = (y_length + slope*node_s) - slope*nodes(i,j_min,k).x;
-      //(*depth)(i,k) = .25 - .25*tanh((nodes(i,j,k_min).x-1.));
-      //(*depth)(i,k) = y_length - slope*nodes(i,j,k_min).x;
-      //(*depth)(i,k) = y_length;
+        (*depth)(i,j) = (z_length + slope*node_s) - slope*nodes(i,j,k_min).x;
     }
   }
 }

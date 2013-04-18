@@ -126,7 +126,6 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   ARRAY_2D<VECTOR_3D<T> > *F;   //RHS for tridiagonal solve
 
   /* Assemble the RHS */
-
   // Forward Euler timesteping on the first time step
   if(parameters->time_step == 1)
     leading_term_AB_coefficient = (T)1;
@@ -224,16 +223,16 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           T jacobian = (T)1 / (*grid->inverse_Jacobian)(i,j,k);
           // Coriolis terms
           if(parameters->coriolis){
-            (*RHS_for_AB)(i,j,k).x -=parameters->omega * (*u)(i,j,k).z*jacobian;
-            (*RHS_for_AB)(i,j,k).z +=parameters->omega * (*u)(i,j,k).x*jacobian; 
+            (*RHS_for_AB)(i,j,k).x -=parameters->omega * (*u)(i,j,k).y*jacobian;
+            (*RHS_for_AB)(i,j,k).y +=parameters->omega * (*u)(i,j,k).x*jacobian; 
           }
           // buoyancy term
-          //(*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
+          //(*RHS_for_AB)(i,j,k).z -= parameters->g * jacobian
           //                        * ((*rho)(i,j,k) - scalar->Rho_Rest(i,j,k));
-          (*RHS_for_AB)(i,j,k).y -= parameters->g * jacobian
+          (*RHS_for_AB)(i,j,k).z -= parameters->g * jacobian
             * ((*(*phi)(1))(i,j,k) - scalar1->Rho_Rest(i,j,k));
-
         }
+
   // adding Adams-Bashforth contribution for current time step
   // 'RHS_for_AB' is saved from this point until the next time step
   //RHS += leading_term_AB_coefficient * (*RHS_for_AB);
@@ -422,16 +421,16 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
         (*B)(i,j) = (T)1 - (*A)(i,j) - (*C)(i,j);
         (*F)(i,j) = RHS(i,j,k);
       }// for: i,j
-    // Boundary conditions for J-direction: south
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
+    // Boundary conditions for J-direction: front
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
         (*A)(i,jmin-1) = (T)0;	// jmin-1 is 0 (in F code)
         (*B)(i,jmin-1) = (T)1;	// no-slip: u_0 = -u_1
-        switch(parameters->suth_bc){
+        switch(parameters->frnt_bc){
           case FREE_SLIP: (*C)(i,jmin-1) = (T)-1; break;
           case   NO_SLIP: (*C)(i,jmin-1) = (T)1;  break; // no-slip: u_0 = -u_1
         }
-        // RHS : south BC
+        // RHS : front BC
         T dP_dET = (*P)(i  ,jmin  ,k) - (*P)(i  ,jmin-1,k),
           dP_dXI = (*P)(i+1,jmin-1,k) - (*P)(i-1,jmin-1,k) + 
             (*P)(i+1,jmin  ,k) - (*P)(i-1,jmin  ,k),
@@ -452,11 +451,11 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           /*jmin-1 or jmin?*/              (*grid->ET_z)(i,jmin-1,k)  * dP_dET +
           (T).125*((*grid->ZT_z)(i,jmin,k-1)+(*grid->ZT_z)(i,jmin,k)) * dP_dZT;
         (*F)(i,jmin-1) *= coeff;
-      }// suth BC
-    // Boundary conditions for J-direction: north
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+      }// front BC
+    // Boundary conditions for J-direction: back
+    if(mpi_driver->back_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
-        switch(parameters->nrth_bc){
+        switch(parameters->back_bc){
           case FREE_SLIP: (*A)(i,jmax+1) = (T)-1; break; //free-slip:u_N = u_N+1
           case   NO_SLIP: (*A)(i,jmax+1) = (T)1;  break; 
         }	
@@ -483,11 +482,11 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           (*grid->ET_z)(i,jmax,k)  * dP_dET +
           (T).125*((*grid->ZT_z)(i,jmax,k-1)+(*grid->ZT_z)(i,jmax,k)) * dP_dZT;
         (*F)(i,jmax+1) *= coeff;
-      }//north BC
+      }//back BC
 
     //solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(*A, *B, *C, *F, 
-        parameters->periodic_in_y, mpi_driver->suth_proc, mpi_driver->nrth_proc);
+        parameters->periodic_in_y, mpi_driver->frnt_proc, mpi_driver->back_proc);
 
     //solution of linear system is in F
     for(int i = imin; i <= imax; i++)
@@ -523,16 +522,16 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
         (*B)(i,k) = (T)1 - (*A)(i,k) - (*C)(i,k);
         (*F)(i,k) = RHS(i,j,k);
       }// for: i,k
-    // Boundary conditions for K-direction: back
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
+    // Boundary conditions for K-direction: bottom
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
         (*A)(i,kmin-1) = (T)0;	// kmin-1 is 0 (in F code)
         (*B)(i,kmin-1) = (T)1;
-        switch(parameters->back_bc){
+        switch(parameters->suth_bc){
           case FREE_SLIP: (*C)(i,kmin-1) = (T)-1; break;// free-slip: u_0 = u_1
           case   NO_SLIP: (*C)(i,kmin-1) = (T)1;  break; 
         }
-        // RHS : BC back
+        // RHS : BC bottom
         T dP_dZT = (*P)(i  ,j  ,kmin  ) - (*P)(i  ,j  ,kmin-1),
           dP_dXI = (*P)(i+1,j  ,kmin-1) - (*P)(i-1,j  ,kmin-1) + 
             (*P)(i+1,j  ,kmin  ) - (*P)(i-1,j  ,kmin  ),
@@ -553,17 +552,17 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           (T).125*((*grid->ET_z)(i,j-1,kmin)+(*grid->ET_z)(i,j,kmin)) * dP_dET +
           /*kmin-1 or kmin ? */            (*grid->ZT_z)(i,j,kmin-1)  * dP_dZT;
         (*F)(i,kmin-1) *= coeff;
-      }// back BC
-    // Boundary conditions for K-direction: front
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+      }// bottom BC
+    // Boundary conditions for K-direction: top
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int i = imin; i <= imax; i++){
-        switch(parameters->frnt_bc){
+        switch(parameters->nrth_bc){
           case FREE_SLIP: (*A)(i,kmax+1) = (T)-1; break;//free-slip: u_N = u_N+1
           case   NO_SLIP: (*A)(i,kmax+1) = (T)1;  break; 
         }
         (*B)(i,kmax+1) = (T)1;
         (*C)(i,kmax+1) = (T)0;
-        // RHS : BC front
+        // RHS : BC top
         T dP_dZT = (*P)(i  ,j  ,kmax+1) - (*P)(i  ,j  ,kmax  ),
           dP_dXI = (*P)(i+1,j  ,kmax  ) - (*P)(i-1,j  ,kmax  ) + 
             (*P)(i+1,j  ,kmax+1) - (*P)(i-1,j  ,kmax+1),
@@ -584,12 +583,10 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           (T).125*((*grid->ET_z)(i,j-1,kmax)+(*grid->ET_z)(i,j,kmax)) * dP_dET +
           (*grid->ZT_z)(i,j,kmax)  * dP_dZT;
         (*F)(i,kmax+1) *= coeff;
-      }//front BC
-
+      }//top BC
     //solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(*A, *B, *C, *F, 
-        parameters->periodic_in_z, mpi_driver->back_proc, mpi_driver->frnt_proc);
-
+        parameters->periodic_in_z, mpi_driver->suth_proc, mpi_driver->nrth_proc);
     //solution of linear system is in F
     for(int i = imin; i <= imax; i++)
       for(int k = kmin; k <= kmax; k++)
@@ -615,7 +612,7 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   convection1->Quick_Velocity_Flux_Update(*u); // Velocity fluxes on faces
 
   mpi_driver->Syncronize_All_Procs(); // Wait for all procs to finish
-  
+
   /*
   //test print
   T Qp = 0.;
@@ -640,26 +637,26 @@ void NAVIER_STOKES_SOLVER<T>::Corrector()
       for(int k=grid->K_Min(); k<=grid->K_Max(); k++) {
         T P_east = (*P)(i+1,j,k) + (*P)(i,j,k), 
           P_west = (*P)(i-1,j,k) + (*P)(i,j,k),
-          P_nrth = (*P)(i,j+1,k) + (*P)(i,j,k),
-          P_suth = (*P)(i,j-1,k) + (*P)(i,j,k),
-          P_frnt = (*P)(i,j,k+1) + (*P)(i,j,k),
-          P_back = (*P)(i,j,k-1) + (*P)(i,j,k),
+          P_back = (*P)(i,j+1,k) + (*P)(i,j,k),
+          P_frnt = (*P)(i,j-1,k) + (*P)(i,j,k),
+          P_nrth = (*P)(i,j,k+1) + (*P)(i,j,k),
+          P_suth = (*P)(i,j,k-1) + (*P)(i,j,k),
           coeff = (T).5*parameters->delta_time*(*grid->inverse_Jacobian)(i,j,k);
 
         (*u)(i,j,k).x -= coeff * 
           ( (*grid->XI_x)(i,j,k)*P_east - (*grid->XI_x)(i-1,j,k)*P_west
-            + (*grid->ET_x)(i,j,k)*P_nrth - (*grid->ET_x)(i,j-1,k)*P_suth
-            + (*grid->ZT_x)(i,j,k)*P_frnt - (*grid->ZT_x)(i,j,k-1)*P_back );
+            + (*grid->ET_x)(i,j,k)*P_back - (*grid->ET_x)(i,j-1,k)*P_frnt
+            + (*grid->ZT_x)(i,j,k)*P_nrth - (*grid->ZT_x)(i,j,k-1)*P_suth );
 
         (*u)(i,j,k).y -= coeff * 
           ( (*grid->XI_y)(i,j,k)*P_east - (*grid->XI_y)(i-1,j,k)*P_west
-            + (*grid->ET_y)(i,j,k)*P_nrth - (*grid->ET_y)(i,j-1,k)*P_suth
-            + (*grid->ZT_y)(i,j,k)*P_frnt - (*grid->ZT_y)(i,j,k-1)*P_back );
+            + (*grid->ET_y)(i,j,k)*P_back - (*grid->ET_y)(i,j-1,k)*P_frnt
+            + (*grid->ZT_y)(i,j,k)*P_nrth - (*grid->ZT_y)(i,j,k-1)*P_suth );
 
         (*u)(i,j,k).z -= coeff * 
           ( (*grid->XI_z)(i,j,k)*P_east - (*grid->XI_z)(i-1,j,k)*P_west
-            + (*grid->ET_z)(i,j,k)*P_nrth - (*grid->ET_z)(i,j-1,k)*P_suth
-            + (*grid->ZT_z)(i,j,k)*P_frnt - (*grid->ZT_z)(i,j,k-1)*P_back );
+            + (*grid->ET_z)(i,j,k)*P_back - (*grid->ET_z)(i,j-1,k)*P_frnt
+            + (*grid->ZT_z)(i,j,k)*P_nrth - (*grid->ZT_z)(i,j,k-1)*P_suth );
 
       }
 
@@ -747,28 +744,28 @@ void NAVIER_STOKES_SOLVER<T>::Linear_Extrapolate_Into_Halo_Regions(
         u(xmax+2,j,k) = (T)3*(u(xmax+1,j,k)-u(xmax,j,k)) + u(xmax-1,j,k);  
       }
 
-  if(mpi_driver->suth_proc == MPI_PROC_NULL)
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int k = zmin-halo; k <= zmax+halo; k++){
         u(i,ymin-1,k) = (T)3*(u(i,ymin,k)-u(i,ymin+1,k)) + u(i,ymin+2,k);
         u(i,ymin-2,k) = (T)3*(u(i,ymin-1,k)-u(i,ymin,k)) + u(i,ymin+1,k);   
       }
 
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+  if(mpi_driver->back_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int k = zmin-halo; k <= zmax+halo; k++){
         u(i,ymax+1,k) = (T)3*(u(i,ymax,k)-u(i,ymax-1,k)) + u(i,ymax-2,k);
         u(i,ymax+2,k) = (T)3*(u(i,ymax+1,k)-u(i,ymax,k)) + u(i,ymax-1,k); 
       }
 
-  if(mpi_driver->back_proc == MPI_PROC_NULL)
+  if(mpi_driver->suth_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int j = ymin-halo; j <= ymax+halo; j++){
         u(i,j,zmin-1) = (T)3*(u(i,j,zmin)-u(i,j,zmin+1)) + u(i,j,zmin+2);
         u(i,j,zmin-2) = (T)3*(u(i,j,zmin-1)-u(i,j,zmin)) + u(i,j,zmin+1);  
       }
 
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL)
     for(int i = xmin-halo; i <= xmax+halo; i++)
       for(int j = ymin-halo; j <= ymax+halo; j++){
         u(i,j,zmax+1) = (T)3*(u(i,j,zmax)-u(i,j,zmax-1)) + u(i,j,zmax-2);
@@ -784,40 +781,40 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
   // BC: Top
   if(mpi_driver->nrth_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++)
-      for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
+      for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++) {
         if(parameters->lid_velocity){
-          //u(i,u.J_Max(),k) = (*parameters->lid_velocity)(i,k);
-          u(i,u.J_Max()+1,k) = (T)2 * (*parameters->lid_velocity)(i,k) - 
-            u(i,u.J_Max(),k);
+          //u(i,j,u.K_Max()) = (*parameters->lid_velocity)(i,j);
+          u(i,j,u.K_Max()+1) = (T)2 * (*parameters->lid_velocity)(i,j) - 
+            u(i,j,u.K_Max());
         }
         else
           switch(parameters->nrth_bc){
-            case FREE_SLIP: u(i,u.J_Max()+1,k) =   u(i,u.J_Max(),k); break;
-            case   NO_SLIP: u(i,u.J_Max()+1,k) = - u(i,u.J_Max(),k); break;
+            case FREE_SLIP: u(i,j,u.K_Max()+1) =   u(i,j,u.K_Max()); break;
+            case   NO_SLIP: u(i,j,u.K_Max()+1) = - u(i,j,u.K_Max()); break;
           }
-        u(i,u.J_Max()+2,k) = (T)3 * (u(i,u.J_Max()+1,k) - u(i,u.J_Max(),k))
-          +  u(i,u.J_Max()-1,k);
+        u(i,j,u.K_Max()+2) = (T)3 * (u(i,j,u.K_Max()+1) - u(i,j,u.K_Max()))
+          +  u(i,j,u.K_Max()-1);
       }
   // BC: Bottom
   if(mpi_driver->suth_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++)
-      for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
+      for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++) {
         if(parameters->bed_velocity){
-          //u(i,u.J_Min(),k) = (*parameters->bed_velocity)(i,k);
-          u(i,u.J_Min()-1,k) = (T)2 * (*parameters->bed_velocity)(i,k) - 
-            u(i,u.J_Min(),k);
+          //u(i,j,u.K_Min()) = (*parameters->bed_velocity)(i,j);
+          u(i,j,u.K_Min()-1) = (T)2 * (*parameters->bed_velocity)(i,j) - 
+            u(i,j,u.K_Min());
         }
         else	  
           switch(parameters->suth_bc){
-            case FREE_SLIP: u(i,u.J_Min()-1,k) =   u(i,u.J_Min(),k); break;
-            case   NO_SLIP: u(i,u.J_Min()-1,k) = - u(i,u.J_Min(),k); break; 
+            case FREE_SLIP: u(i,j,u.K_Min()-1) =   u(i,j,u.K_Min()); break;
+            case   NO_SLIP: u(i,j,u.K_Min()-1) = - u(i,j,u.K_Min()); break; 
           }
-        u(i,u.J_Min()-2,k) = (T)3 * (u(i,u.J_Min()-1,k) - u(i,u.J_Min(),k))
-          +  u(i,u.J_Min()+1,k);
+        u(i,j,u.K_Min()-2) = (T)3 * (u(i,j,u.K_Min()-1) - u(i,j,u.K_Min()))
+          +  u(i,j,u.K_Min()+1);
 
         if(parameters->bed_velocity) 
-          u(i,u.J_Min()-2,k) =  u(i,u.J_Min()-1,k) =
-            (*parameters->bed_velocity)(i,k);
+          u(i,j,u.K_Min()-2) =  u(i,j,u.K_Min()-1) =
+            (*parameters->bed_velocity)(i,j);
       }
   // BC: Left
   if(mpi_driver->west_proc == MPI_PROC_NULL)
@@ -851,24 +848,25 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
   // BC: Back
   if(mpi_driver->back_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++) 
-      for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++) {
+      for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
         switch(parameters->back_bc){
-          case FREE_SLIP: u(i,j,u.K_Min()-1) =   u(i,j,u.K_Min()); break;
-          case   NO_SLIP: u(i,j,u.K_Min()-1) = - u(i,j,u.K_Min()); break; 
+          case FREE_SLIP: u(i,u.J_Max()-1,k) =   u(i,u.J_Max(),k); break;
+          case   NO_SLIP: u(i,u.J_Max()-1,k) = - u(i,u.J_Max(),k); break; 
         }
-        u(i,j,u.K_Min()-2) = (T)3 * (u(i,j,u.K_Min()-1) - u(i,j,u.K_Min()))
-          +  u(i,j,u.K_Min()+1);
+        u(i,u.J_Max()+2,k) = (T)3 * (u(i,u.J_Max()+1,k) - u(i,u.J_Max(),k))
+          +  u(i,u.J_Max()-1,k);
+
       }
   // BC: Front
   if(mpi_driver->frnt_proc == MPI_PROC_NULL)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++) 
-      for(int j=u.J_Min_With_Halo(); j<=u.J_Max_With_Halo(); j++) {
+      for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
         switch(parameters->frnt_bc){
-          case FREE_SLIP: u(i,j,u.K_Max()+1) =   u(i,j,u.K_Max()); break;
-          case   NO_SLIP: u(i,j,u.K_Max()+1) = - u(i,j,u.K_Max()); break; 
+          case FREE_SLIP: u(i,u.J_Min()+1,k) =   u(i,u.J_Min(),k); break;
+          case   NO_SLIP: u(i,u.J_Min()+1,k) = - u(i,u.J_Min(),k); break; 
         }
-        u(i,j,u.K_Max()+2) = (T)3 * (u(i,j,u.K_Max()+1) - u(i,j,u.K_Max()))
-          +  u(i,j,u.K_Max()-1);
+        u(i,u.J_Min()-2,k) = (T)3 * (u(i,u.J_Min()-1,k) - u(i,u.J_Min(),k))
+          +  u(i,u.J_Min()+1,k);
       }
 }
 //*****************************************************************************
@@ -1209,7 +1207,7 @@ if(parameters->scalar_advection) {
   T ratio = parameters->ratio; //delta_rho/rho_0
   T rho0 = parameters->rho0;;
   T delta_rho = ratio*rho0;  
-  T interface_loc = parameters->y_length/parameters->upper_layer_depth;
+  T interface_loc = parameters->z_length/parameters->upper_layer_depth;
   T a = parameters->a;
   T Lw = parameters->Lw;
   T zeta;
@@ -1221,8 +1219,8 @@ if(parameters->scalar_advection) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
           zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-          (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y - zeta + 
-                parameters->y_length/interface_loc)/delta*atanh(alpha));          
+          (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
+                parameters->z_length/interface_loc)/delta*atanh(alpha));          
         }
       }
     }
@@ -1233,8 +1231,8 @@ if(parameters->scalar_advection) {
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).y + 
-                parameters->y_length/interface_loc)/delta*atanh(alpha));           
+          (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).z + 
+                parameters->z_length/interface_loc)/delta*atanh(alpha));           
         }
       }
     }
@@ -1286,7 +1284,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC(T time)
     for(int j=parameters->j_min_w_h; j<=parameters->j_max_w_h; j++)
       for(int k=parameters->k_min_w_h; k<=parameters->k_max_w_h; k++) 
         (*parameters->west_velocity)(j,k).x = 
-             parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).y)
+             -parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).z)
                                     *sin(parameters->freq*time);
 } 
 //*****************************************************************************

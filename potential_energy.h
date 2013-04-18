@@ -144,12 +144,12 @@ T POTENTIAL_ENERGY<T>::Total_Potential_Energy()
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
 	T cell_volume = (T)1 / (*grid->inverse_Jacobian)(i,j,k),
-	  cell_height = (*grid)(i-1,j-1,k-1).y + (*grid)(i+1,j-1,k-1).y
-                      + (*grid)(i-1,j+1,k-1).y + (*grid)(i+1,j+1,k-1).y
-	              + (*grid)(i-1,j-1,k+1).y + (*grid)(i+1,j-1,k+1).y
-	              + (*grid)(i-1,j+1,k+1).y + (*grid)(i+1,j+1,k+1).y;
+	  cell_height = (*grid)(i-1,j-1,k-1).z + (*grid)(i+1,j-1,k-1).z
+                      + (*grid)(i-1,j+1,k-1).z + (*grid)(i+1,j+1,k-1).z
+	              + (*grid)(i-1,j-1,k+1).z + (*grid)(i+1,j-1,k+1).z
+	              + (*grid)(i-1,j+1,k+1).z + (*grid)(i+1,j+1,k+1).z;
 	cell_height /= (T)8;
-	cell_height -= parameters->y_min;
+	cell_height -= parameters->z_min;
 	E_p += (*rho)(i,j,k) * cell_volume * cell_height;
   }
   E_p *= parameters->g;
@@ -283,7 +283,7 @@ void POTENTIAL_ENERGY<T>::Redistribute_Local_Arrays()
 template<class T> 
 T POTENTIAL_ENERGY<T>::Receive_Initial_Local_Height()
 { 
-  if(!mpi_driver->my_rank) return parameters->y_min;
+  if(!mpi_driver->my_rank) return parameters->z_min;
   else{
     T height = (T)0; 
     MPI_Status status; 
@@ -293,7 +293,7 @@ T POTENTIAL_ENERGY<T>::Receive_Initial_Local_Height()
   }
 }
 //*****************************************************************************
-// Send the top y-value of the current proc (for Receive_Initial_Local_Height())
+// Send the top z-value of the current proc (for Receive_Initial_Local_Height())
 //*****************************************************************************
 template<class T> 
 void POTENTIAL_ENERGY<T>::Send_Final_Local_Height(T final_cell_height)

@@ -110,7 +110,6 @@ template<class T> void PRESSURE<T>::Solve()
     residual_l2 = (T)0, rhs_l2 = (T)0, residual_min = (T)0, residual_max = (T)0;
 
   Reset_All_Arrays();
-
   // Set RHS on 8 boundaries
   // RHS: west
   if(mpi_driver->west_proc == MPI_PROC_NULL)
@@ -149,8 +148,8 @@ template<class T> void PRESSURE<T>::Solve()
         (*RHS)(imax+1,j,k) = (T).125*inv_dt * VECTOR_3D<T>::Dot_Product(v1,v2);
         (*U_xi)(imax,j,k) = (T)0;
       }
-  // RHS: south
-  if(mpi_driver->suth_proc == MPI_PROC_NULL)
+  // RHS: front
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL)
     for(int i = RHS->I_Min(); i <= RHS->I_Max(); i++) 
       for(int k = RHS->K_Min(); k <= RHS->K_Max(); k++) {
         int jmin = RHS->J_Min();
@@ -161,8 +160,8 @@ template<class T> void PRESSURE<T>::Solve()
         (*RHS)(i,jmin-1,k) = (T).125*inv_dt * VECTOR_3D<T>::Dot_Product(v1,v2);
         (*U_et)(i,jmin-1,k) = (T)0;
       }
-  // RHS: north
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+  // RHS: back
+  if(mpi_driver->back_proc == MPI_PROC_NULL)
     for(int i = RHS->I_Min(); i <= RHS->I_Max(); i++) 
       for(int k = RHS->K_Min(); k <= RHS->K_Max(); k++) {
         int jmax = RHS->J_Max();
@@ -173,8 +172,8 @@ template<class T> void PRESSURE<T>::Solve()
         (*RHS)(i,jmax+1,k) = (T).125*inv_dt * VECTOR_3D<T>::Dot_Product(v1,v2);
         (*U_et)(i,jmax,k) = (T)0;
       }
-  // RHS: back
-  if(mpi_driver->back_proc == MPI_PROC_NULL)
+  // RHS: south
+  if(mpi_driver->suth_proc == MPI_PROC_NULL)
     for(int i = RHS->I_Min(); i <= RHS->I_Max(); i++) 
       for(int j = RHS->J_Min(); j <= RHS->J_Max(); j++) {
         int kmin = RHS->K_Min();
@@ -185,8 +184,8 @@ template<class T> void PRESSURE<T>::Solve()
         (*RHS)(i,j,kmin-1) = (T).125*inv_dt * VECTOR_3D<T>::Dot_Product(v1,v2);
         (*U_zt)(i,j,kmin-1) = (T)0;
       }
-  // RHS: front
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+  // RHS: north
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL)
     for(int i = RHS->I_Min(); i <= RHS->I_Max(); i++) 
       for(int j = RHS->J_Min(); j <= RHS->J_Max(); j++) {
         int kmax = RHS->K_Max();
@@ -197,7 +196,6 @@ template<class T> void PRESSURE<T>::Solve()
         (*RHS)(i,j,kmax+1) = (T).125*inv_dt * VECTOR_3D<T>::Dot_Product(v1,v2);
         (*U_zt)(i,j,kmax) = (T)0;
       }
-
   // RHS: in the interior
   for(int i = RHS->I_Min(); i <= RHS->I_Max(); i++)
     for(int j = RHS->J_Min(); j <= RHS->J_Max(); j++)
@@ -205,7 +203,6 @@ template<class T> void PRESSURE<T>::Solve()
         (*RHS)(i,j,k) = inv_dt * ( (*U_xi)(i,j,k) - (*U_xi)(i-1,j,k)
             + (*U_et)(i,j,k) - (*U_et)(i,j-1,k)
             + (*U_zt)(i,j,k) - (*U_zt)(i,j,k-1) );
-
   // Main Iteration Loop  
   for(int iter = 1; iter <= parameters->max_mg_iters; iter++){
 
@@ -221,7 +218,6 @@ template<class T> void PRESSURE<T>::Solve()
         Smooth_Pressure(level, residual_l2, rhs_l2, residual_min, residual_max, 
             *(*P_sub)(level), *(*RHS_sub)(level), *(*Res_sub)(level));
     }
-
     // Refinement (going up the V-cycle) if multigrid_levels!=0
     for(int level = parameters->mg_sub_levels; level >= 1; level--){
       if(level > 1){
@@ -232,11 +228,9 @@ template<class T> void PRESSURE<T>::Solve()
       else // last step (level==1)
         Extend_Array(*(*P_sub)(1), *P); //extend to finest level of P
     }
-
     // In case there are no MG sub-levels or last step of refinement loop 
     Smooth_Pressure(0, residual_l2, rhs_l2, residual_min, residual_max, 
         *P, *RHS, *Residual);
-
     // Check convergence
     T max_abs_error = fmax(fabs(residual_min), fabs(residual_max)),
       relative_resid = residual_l2 / (rhs_l2 < 1e-15 ? 1e-15 : rhs_l2);
@@ -298,7 +292,7 @@ void PRESSURE<T>::Condense_Array(ARRAY_3D<T>& P, ARRAY_3D<T>& P_condensed)
             + P(i,j  ,k+1)
             + P(i,j+1,k+1);
         }	
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
       for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
         for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
           int i = 2*ic - 1, j = P.J_Min()-1, k = 2*kc - 1; //j=0
@@ -307,7 +301,7 @@ void PRESSURE<T>::Condense_Array(ARRAY_3D<T>& P, ARRAY_3D<T>& P_condensed)
             + P(i  ,j,k+1)
             + P(i+1,j,k+1);
         }	
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+    if(mpi_driver->back_proc == MPI_PROC_NULL)
       for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
         for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
           int i = 2*ic - 1, j = P.J_Max()+1, k = 2*kc - 1; //j=jmax+1
@@ -316,7 +310,7 @@ void PRESSURE<T>::Condense_Array(ARRAY_3D<T>& P, ARRAY_3D<T>& P_condensed)
             + P(i  ,j,k+1)
             + P(i+1,j,k+1);
         }
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
         for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
           int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Min()-1; //k=0
@@ -325,7 +319,7 @@ void PRESSURE<T>::Condense_Array(ARRAY_3D<T>& P, ARRAY_3D<T>& P_condensed)
             + P(i  ,j+1,k)
             + P(i+1,j+1,k);
         }
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
         for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
           int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Max()+1; //k=kmax+1
@@ -339,57 +333,57 @@ void PRESSURE<T>::Condense_Array(ARRAY_3D<T>& P, ARRAY_3D<T>& P_condensed)
     for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
       for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
         for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = 2*jc - 1, k = kc; 
+          int i = 2*ic - 1, j = jc, k = 2*kc - 1; 
           P_condensed(ic,jc,kc) = P(i,j  ,k  ) + P(i+1,j  ,k  ) 
-            + P(i,j+1,k  ) + P(i+1,j+1,k  );
+            + P(i,j  ,k+1) + P(i+1,j  ,k+1);
         }
     if(mpi_driver->west_proc == MPI_PROC_NULL)
       for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
         for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = P.I_Min()-1, j = 2*jc - 1, k = kc; //i=0
+          int i = P.I_Min()-1, j = jc, k = 2*kc - 1; //i=0
           P_condensed(P_condensed.I_Min()-1, jc, kc) = P(i,j  ,k  ) 
-            + P(i,j+1,k  );
+            + P(i,j  ,k+1);
         }	
     if(mpi_driver->east_proc == MPI_PROC_NULL)
       for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
         for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = P.I_Max()+1, j = 2*jc - 1, k = kc; //i=imax+1
+          int i = P.I_Max()+1, j = jc, k = 2*kc - 1; //i=imax+1
           P_condensed(P_condensed.I_Max()+1, jc, kc) = P(i,j  ,k  ) 
-            + P(i,j+1,k  );
+            + P(i,j  ,k+1);
         }	
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = P.J_Min()-1, k = kc; //j=0
-          P_condensed(ic, P_condensed.J_Min()-1, kc) = P(i  ,j,k  ) 
-            + P(i+1,j,k  );
-        }	
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = P.J_Max()+1, k = kc; //j=jmax+1
-          P_condensed(ic, P_condensed.J_Max()+1, kc) = P(i  ,j,k  ) 
-            + P(i+1,j,k  );
-        }
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
-          int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Min()-1; //k=0
-          P_condensed(ic, jc, P_condensed.K_Min()-1) = P(i  ,j  ,k) 
-            + P(i+1,j  ,k)
-            + P(i  ,j+1,k)
-            + P(i+1,j+1,k);
-        }
     if(mpi_driver->frnt_proc == MPI_PROC_NULL)
       for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
-          int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Max()+1; //k=kmax+1
-          P_condensed(ic, jc, P_condensed.K_Max()+1) = P(i  ,j  ,k) 
-            + P(i+1,j  ,k)
-            + P(i  ,j+1,k)
-            + P(i+1,j+1,k);
+        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+          int i = 2*ic - 1, j = P.J_Min()-1, k = 2*kc - 1; //j=0
+          P_condensed(ic, P_condensed.J_Min()-1, kc) = P(i  ,j,k  ) 
+            + P(i+1,j,k  )
+            + P(i  ,j,k+1)
+            + P(i+1,j,k+1);
+        }	
+    if(mpi_driver->back_proc == MPI_PROC_NULL)
+      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
+        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+          int i = 2*ic - 1, j = P.J_Max()+1, k = 2*kc - 1; //j=jmax+1
+          P_condensed(ic, P_condensed.J_Max()+1, kc) = P(i  ,j,k  ) 
+            + P(i+1,j,k  )
+            + P(i  ,j,k+1)
+            + P(i+1,j,k+1);
         }
-  }
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
+      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
+        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
+          int i = 2*ic - 1, j = jc, k = P.K_Min()-1; //k=0
+          P_condensed(ic, jc, P_condensed.K_Min()-1) = P(i  ,j  ,k) 
+            + P(i+1,j  ,k);
+        }
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
+        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
+          int i = 2*ic - 1, j = jc, k = P.K_Max()+1; //k=kmax+1
+          P_condensed(ic, jc, P_condensed.K_Max()+1) = P(i  ,j  ,k) 
+            + P(i+1,j  ,k);
+        } 
+    }
 }
 //*****************************************************************************
 // Extrapolates P_condensed to P (twice the size): coarse to fine
@@ -440,21 +434,21 @@ void PRESSURE<T>::Extend_Array(ARRAY_3D<T>& P_condensed, ARRAY_3D<T>& P)
     for(int ic = P_condensed.I_Min()-1; ic <= P_condensed.I_Max(); ic++)
       for(int jc = P_condensed.J_Min()-1; jc <= P_condensed.J_Max(); jc++)
         for(int kc = P_condensed.K_Min()-1; kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic, j = 2*jc, k = kc; 
-          T p000=P_condensed(ic,jc,kc),     p100=P_condensed(ic+1,jc,kc),
-            p010=P_condensed(ic,jc+1,kc),   p110=P_condensed(ic+1,jc+1,kc);
+          int i = 2*ic, j = jc, k = 2*kc; 
+          T p000=P_condensed(ic,jc,kc),   p100=P_condensed(ic+1,jc,kc),
+            p001=P_condensed(ic,jc,kc+1), p101=P_condensed(ic+1,jc,kc+1);
           // updating 8 corners of each sub-cell
           // Corner: 000
-          P(i,j,k)   += (T).015625*((T)27*p000 + (T)9*(p100+p010) 
-              + (T)3*(p110) );
+          P(i,j,k)   += (T).015625*((T)27*p000 + (T)9*(p100+p001) 
+              + (T)3*(p101) );
           // Corner: 100
-          P(i+1,j,k) += (T).015625*((T)27*p100 + (T)9*(p000+p110) 
-              + (T)3*(p010) );
-          // Corner: 010
-          P(i,j+1,k) += (T).015625*((T)27*p010 + (T)9*(p110+p000) 
+          P(i+1,j,k) += (T).015625*((T)27*p100 + (T)9*(p000+p101) 
+              + (T)3*(p001) );
+          // Corner: 001
+          P(i,j,k+1) += (T).015625*((T)27*p001 + (T)9*(p101+p000) 
               + (T)3*(p100) );
-          // Corner: 110
-          P(i+1,j+1,k) += (T).015625*((T)27*p110 + (T)9*(p010+p100) 
+          // Corner: 101
+          P(i+1,j,k+1) += (T).015625*((T)27*p101 + (T)9*(p001+p100) 
               + (T)3*(p000) );
         }//for_loops: ic,jc,kc
   }
@@ -471,43 +465,43 @@ void PRESSURE<T>::Fill_In_Eight_Boundary_Corners(ARRAY_3D<T>& P)
       kmin=P.K_Min(), kmax=P.K_Max();
 
   if(mpi_driver->west_proc == MPI_PROC_NULL) {
-    if(mpi_driver->suth_proc == MPI_PROC_NULL) {
-      if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+      if(mpi_driver->suth_proc == MPI_PROC_NULL)
         P(imin-1,jmin-1,kmin-1) = P(imin-1,jmin,kmin) + P(imin,jmin-1,kmin)
           + P(imin,jmin,kmin-1) - (T)2*P(imin,jmin,kmin);
-      if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+      if(mpi_driver->nrth_proc == MPI_PROC_NULL)
         P(imin-1,jmin-1,kmax+1) = P(imin-1,jmin,kmax) + P(imin,jmin-1,kmax)
           + P(imin,jmin,kmax+1) - (T)2*P(imin,jmin,kmax);
-    }//suth
+    }//frnt
 
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
-      if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->back_proc == MPI_PROC_NULL) {
+      if(mpi_driver->suth_proc == MPI_PROC_NULL)
         P(imin-1,jmax+1,kmin-1) = P(imin-1,jmax,kmin) + P(imin,jmax+1,kmin)
           + P(imin,jmax,kmin-1) - (T)2*P(imin,jmax,kmin);
-      if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+      if(mpi_driver->nrth_proc == MPI_PROC_NULL)
         P(imin-1,jmax+1,kmax+1) = P(imin-1,jmax,kmax) + P(imin,jmax+1,kmax)
           + P(imin,jmax,kmax+1) - (T)2*P(imin,jmax,kmax);
-    }//nrth
+    }//back
   }//west
 
   if(mpi_driver->east_proc == MPI_PROC_NULL) {
-    if(mpi_driver->suth_proc == MPI_PROC_NULL) {
-      if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+      if(mpi_driver->suth_proc == MPI_PROC_NULL)
         P(imax+1,jmin-1,kmin-1) = P(imax+1,jmin,kmin) + P(imax,jmin-1,kmin)
           + P(imax,jmin,kmin-1) - (T)2*P(imax,jmin,kmin);
-      if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+      if(mpi_driver->nrth_proc == MPI_PROC_NULL)
         P(imax+1,jmin-1,kmax+1) = P(imax+1,jmin,kmax) + P(imax,jmin-1,kmax)
           + P(imax,jmin,kmax+1) - (T)2*P(imax,jmin,kmax);
-    }//suth
+    }//frnt
 
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
-      if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->back_proc == MPI_PROC_NULL) {
+      if(mpi_driver->suth_proc == MPI_PROC_NULL)
         P(imax+1,jmax+1,kmin-1) = P(imax+1,jmax,kmin) + P(imax,jmax+1,kmin)
           + P(imax,jmax,kmin-1) - (T)2*P(imax,jmax,kmin);
-      if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+      if(mpi_driver->nrth_proc == MPI_PROC_NULL)
         P(imax+1,jmax+1,kmax+1) = P(imax+1,jmax,kmax) + P(imax,jmax+1,kmax)
           + P(imax,jmax,kmax+1) - (T)2*P(imax,jmax,kmax);
-    }//nrth
+    }//back
   }//east
 }
 //*****************************************************************************
@@ -522,9 +516,11 @@ void PRESSURE<T>::Smooth_Pressure(int level,
   METRIC_QUANTITIES<T> mq, mq_new; // metric quantities helper structures 
   // Initialize_P_RHS_Residual(level, P, RHS, Residual); // set based on level
   Initialize_Metric_Quantities(level, mq, mq_new); // set based on level
+  
   // save initial residual in 'residual_l2_old'
   Compute_Residual(residual_l2_old, rhs_l2, residual_min, residual_max, 
       P, RHS, Residual, mq, mq_new);
+
   // exit if residual is zero
   if(!residual_l2_old) {residual_l2 = residual_l2_old; return;}
 
@@ -534,12 +530,15 @@ void PRESSURE<T>::Smooth_Pressure(int level,
     // sub-iterations
     for(int n=1; n<=parameters->mg_smoothing_sub_iters; n++){
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.;
-      Smooth_Pressure_In_Y(P, RHS, Residual, mq, mq_new); 
+      Smooth_Pressure_In_Z(P, RHS, Residual, mq, mq_new); 
+
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.; 
       if(!parameters->two_d)
-        Smooth_Pressure_In_Z(P, RHS, Residual, mq, mq_new); 
+        Smooth_Pressure_In_Y(P, RHS, Residual, mq, mq_new); 
+
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.; 
       Smooth_Pressure_In_X(P, RHS, Residual, mq, mq_new); 
+
       //for(int i = P.I_Min()-1; i <= P.I_Max()+1; i++)
       //for(int k = P.K_Min()-1; k <= P.K_Max()+1; k++)
       // P(i,P.J_Min(),k) = 0.; 
@@ -549,6 +548,7 @@ void PRESSURE<T>::Smooth_Pressure(int level,
     // check residual for convergence
     Compute_Residual(residual_l2, rhs_l2, residual_min, residual_max, 
         P, RHS, Residual, mq, mq_new);
+
     assert(residual_l2_old);
     if(residual_l2 / residual_l2_old <= parameters->mg_smoothing_converg_thresh)
       residual_l2_old = residual_l2;
@@ -604,19 +604,9 @@ void PRESSURE<T>::Initialize_Metric_Quantities(int level,
         (*mq_new.G13)(i,j,k) = (T)0;
       }
   }
-  // boundary: bottom
-  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
+  // boundary: front
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
     int j = jmin-1; //0
-    for(int i = imin-halo; i <= imax+halo; i++)
-      for(int k = kmin-halo; k <= kmax+halo; k++) {
-        (*mq_new.G21)(i,j,k) = (T)0;
-        (*mq_new.G22)(i,j,k) = (T)0;
-        (*mq_new.G23)(i,j,k) = (T)0;
-      }
-  }
-  // boundary: top
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
-    int j = jmax; //jj
     for(int i = imin-halo; i <= imax+halo; i++)
       for(int k = kmin-halo; k <= kmax+halo; k++) {
         (*mq_new.G21)(i,j,k) = (T)0;
@@ -626,6 +616,16 @@ void PRESSURE<T>::Initialize_Metric_Quantities(int level,
   }
   // boundary: back
   if(mpi_driver->back_proc == MPI_PROC_NULL) {
+    int j = jmax; //jj
+    for(int i = imin-halo; i <= imax+halo; i++)
+      for(int k = kmin-halo; k <= kmax+halo; k++) {
+        (*mq_new.G21)(i,j,k) = (T)0;
+        (*mq_new.G22)(i,j,k) = (T)0;
+        (*mq_new.G23)(i,j,k) = (T)0;
+      }
+  }
+  // boundary: south
+  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
     int k = kmin-1; //0
     for(int i = imin-halo; i <= imax+halo; i++)
       for(int j = jmin-halo; j <= jmax+halo; j++) {
@@ -634,8 +634,8 @@ void PRESSURE<T>::Initialize_Metric_Quantities(int level,
         (*mq_new.G33)(i,j,k) = (T)0;
       }
   }
-  // boundary: front
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+  // boundary: north
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
     int k = kmax; //kk
     for(int i = imin-halo; i <= imax+halo; i++)
       for(int j = jmin-halo; j <= jmax+halo; j++) {
@@ -747,29 +747,29 @@ void PRESSURE<T>::Smooth_Pressure_In_X(ARRAY_3D<T>& P, ARRAY_3D<T>& RHS,
   }//for: k
 
   // Fix other 4 boundaries
-  //bc: suth
-  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
+  //bc: frnt
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
     int j = Res.J_Min()-1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(i,j,k) = Res(i,j+1,k) + Res(i,j,k) / (*mq.G22)(i,j,k);
   }
-  //bc: north
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
+  //bc: back
+  if(mpi_driver->back_proc == MPI_PROC_NULL) {
     int j = Res.J_Max()+1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(i,j,k) =  Res(i,j-1,k) - Res(i,j,k) / (*mq.G22)(i,j-1,k);
   }
-  //bc: back
-  if(mpi_driver->back_proc == MPI_PROC_NULL) {
+  //bc: south
+  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
     int k = Res.K_Min()-1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
         Res(i,j,k) =  Res(i,j,k+1) + Res(i,j,k) / (*mq.G33)(i,j,k);
   }
-  //bc: front
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+  //bc: north
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
     int k = Res.K_Max()+1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
@@ -850,8 +850,8 @@ void PRESSURE<T>::Smooth_Pressure_In_Y(
         B(i,j) =   (*mq_new.GCC)(i,j,k);
         F(i,j) =   Res(i,j,k);
       }//for: i,j
-    //bc: south
-    if(mpi_driver->suth_proc == MPI_PROC_NULL) {
+    //bc: front
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
       int j = P.J_Min()-1;
       for(int i = P.I_Min(); i <= P.I_Max(); i++){
         A(i,j) =   (T)0;
@@ -860,8 +860,8 @@ void PRESSURE<T>::Smooth_Pressure_In_Y(
         F(i,j) =   Res(i,j,k);
       }
     }
-    //bc: north
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
+    //bc: back
+    if(mpi_driver->back_proc == MPI_PROC_NULL) {
       int j = P.J_Max()+1;
       for(int i = P.I_Min(); i <= P.I_Max(); i++){
         A(i,j) =   (*mq.G22)(i,j-1,k);
@@ -873,7 +873,7 @@ void PRESSURE<T>::Smooth_Pressure_In_Y(
 
     // solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(A, B, C, F, 
-        parameters->periodic_in_y, mpi_driver->suth_proc, mpi_driver->nrth_proc);
+        parameters->periodic_in_y, mpi_driver->frnt_proc, mpi_driver->back_proc);
 
     // save solution F
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
@@ -896,15 +896,15 @@ void PRESSURE<T>::Smooth_Pressure_In_Y(
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(i,j,k) =  Res(i-1,j,k) - Res(i,j,k) / (*mq.G11)(i-1,j,k);
   }
-  //bc: back
-  if(mpi_driver->back_proc == MPI_PROC_NULL) {
+  //bc: south
+  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
     int k = Res.K_Min()-1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
         Res(i,j,k) =  Res(i,j,k+1) + Res(i,j,k) / (*mq.G33)(i,j,k);
   }
-  //bc: front
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+  //bc: north
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
     int k = Res.K_Max()+1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
@@ -986,8 +986,9 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
         B(i,k) =   (*mq_new.GCC)(i,j,k);
         F(i,k) =   Res(i,j,k);
       }//end_for: i,k
-    //bc: back
-    if(mpi_driver->back_proc == MPI_PROC_NULL) {
+
+    //bc: south
+    if(mpi_driver->suth_proc == MPI_PROC_NULL) {
       int k = P.K_Min()-1;
       for(int i = P.I_Min(); i <= P.I_Max(); i++){
         A(i,k) =   (T)0;
@@ -996,8 +997,9 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
         F(i,k) =   Res(i,j,k);
       }
     }
-    //bc: front
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+
+    //bc: north
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
       int k = P.K_Max()+1;
       for(int i = P.I_Min(); i <= P.I_Max(); i++){
         A(i,k) =   (*mq.G33)(i,j,k-1);
@@ -1009,7 +1011,7 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
 
     // solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(A, B, C, F, 
-        parameters->periodic_in_z, mpi_driver->back_proc, mpi_driver->frnt_proc);
+        parameters->periodic_in_z, mpi_driver->suth_proc, mpi_driver->nrth_proc);
 
     // save solution F
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
@@ -1025,6 +1027,7 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(i,j,k) = Res(i+1,j,k) + Res(i,j,k) / (*mq.G11)(i,j,k);
   }
+
   //bc: east
   if(mpi_driver->east_proc == MPI_PROC_NULL) {
     int i = Res.I_Max()+1;
@@ -1032,15 +1035,17 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(i,j,k) =  Res(i-1,j,k) - Res(i,j,k) / (*mq.G11)(i-1,j,k);
   }
-  //bc: south
-  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
+
+  //bc: front
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
     int j = Res.J_Min()-1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(i,j,k) =  Res(i,j+1,k) + Res(i,j,k) / (*mq.G22)(i,j,k);
   }
-  //bc: north
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
+
+  //bc: back
+  if(mpi_driver->back_proc == MPI_PROC_NULL) {
     int j = Res.J_Max()+1;
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
@@ -1086,8 +1091,8 @@ void PRESSURE<T>::Fill_In_Residual_On_Six_Boundary_Faces(ARRAY_3D<T>& Res,
             + (*mq.G13)(i-1,j,k)*(P(i  ,j  ,k+1) - P(i  ,j  ,k-1)
               + P(i-1,j  ,k+1) - P(i-1,j  ,k-1)) );
   }
-  // Residual on bottom boundary
-  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
+  // Residual on front boundary
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
     int j = P.J_Min()-1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int k = P.K_Min(); k <= P.K_Max(); k++)
@@ -1097,8 +1102,8 @@ void PRESSURE<T>::Fill_In_Residual_On_Six_Boundary_Faces(ARRAY_3D<T>& Res,
             + (*mq.G21)(i,j,k)*(P(i+1,j  ,k  ) - P(i-1,j  ,k  )
               + P(i+1,j+1,k  ) - P(i-1,j+1,k  )) );
   }
-  // Residual on top boundary
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
+  // Residual on back boundary
+  if(mpi_driver->back_proc == MPI_PROC_NULL) {
     int j = P.J_Max()+1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int k = P.K_Min(); k <= P.K_Max(); k++)
@@ -1108,8 +1113,8 @@ void PRESSURE<T>::Fill_In_Residual_On_Six_Boundary_Faces(ARRAY_3D<T>& Res,
             + (*mq.G21)(i,j-1,k)*(P(i+1,j  ,k  ) - P(i-1,j  ,k  )
               + P(i+1,j-1,k  ) - P(i-1,j-1,k  )) );
   }
-  // Residual on back boundary
-  if(mpi_driver->back_proc == MPI_PROC_NULL) {
+  // Residual on south boundary
+  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
     int k = P.K_Min()-1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int j = P.J_Min(); j <= P.J_Max(); j++)
@@ -1119,8 +1124,8 @@ void PRESSURE<T>::Fill_In_Residual_On_Six_Boundary_Faces(ARRAY_3D<T>& Res,
             + (*mq.G32)(i,j,k)*(P(i  ,j+1,k  ) - P(i  ,j-1,k  )
               + P(i  ,j+1,k+1) - P(i  ,j-1,k+1)) );
   }
-  // Residual on front boundary
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+  // Residual on north boundary
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
     int k = P.K_Max()+1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int j = P.J_Min(); j <= P.J_Max(); j++)
@@ -1141,60 +1146,60 @@ void PRESSURE<T>::Fill_In_Twelve_Boundary_Edges(ARRAY_3D<T>& Res)
   int imin = Res.I_Min(), imax = Res.I_Max(), jmin = Res.J_Min(), 
       jmax = Res.J_Max(), kmin = Res.K_Min(), kmax = Res.K_Max();
   if(mpi_driver->west_proc == MPI_PROC_NULL) {
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(imin-1,jmin-1,k) = (T).5*(Res(imin,jmin-1,k) + Res(imin-1,jmin,k));
 
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+    if(mpi_driver->back_proc == MPI_PROC_NULL)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(imin-1,jmax+1,k) = (T).5*(Res(imin,jmax+1,k) + Res(imin-1,jmax,k));
 
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
         Res(imin-1,j,kmin-1) = (T).5*(Res(imin,j,kmin-1) + Res(imin-1,j,kmin));
 
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
         Res(imin-1,j,kmax+1) = (T).5*(Res(imin,j,kmax+1) + Res(imin-1,j,kmax));
   }//endif: west
 
   if(mpi_driver->east_proc == MPI_PROC_NULL) {
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
+    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(imax+1,jmin-1,k) = (T).5*(Res(imax,jmin-1,k) + Res(imax+1,jmin,k));
 
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+    if(mpi_driver->back_proc == MPI_PROC_NULL)
       for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
         Res(imax+1,jmax+1,k) = (T).5*(Res(imax,jmax+1,k) + Res(imax+1,jmax,k));
 
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
         Res(imax+1,j,kmin-1) = (T).5*(Res(imax,j,kmin-1) + Res(imax+1,j,kmin));
 
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
         Res(imax+1,j,kmax+1) = (T).5*(Res(imax,j,kmax+1) + Res(imax+1,j,kmax));
   }//endif: east
 
-  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
         Res(i,jmin-1,kmin-1) = (T).5*(Res(i,jmin,kmin-1) + Res(i,jmin-1,kmin));
 
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
         Res(i,jmin-1,kmax+1) = (T).5*(Res(i,jmin,kmax+1) + Res(i,jmin-1,kmax));
-  }//endif: suth
+  }//endif: frnt
 
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
+  if(mpi_driver->back_proc == MPI_PROC_NULL) {
+    if(mpi_driver->suth_proc == MPI_PROC_NULL)
       for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
         Res(i,jmax+1,kmin-1) = (T).5*(Res(i,jmax,kmin-1) + Res(i,jmax+1,kmin));
 
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
+    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
       for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
         Res(i,jmax+1,kmax+1) = (T).5*(Res(i,jmax,kmax+1) + Res(i,jmax+1,kmax));
-  }//endif: nrth
+  }//endif: back
 }
 //*****************************************************************************
 // Computes residual of 'L(P) = RHS'
@@ -1279,8 +1284,8 @@ void PRESSURE<T>::Compute_Residual(T& residual_l2, T& rhs_l2, T& residual_min,
             + (*mq.G13)(i-1,j,k)*(P(i  ,j  ,k+1) - P(i  ,j  ,k-1)
               + P(i-1,j  ,k+1) - P(i-1,j  ,k-1)) );
   }
-  // Residual on bottom boundary
-  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
+  // Residual on front boundary
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
     int j = P.J_Min()-1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int k = P.K_Min(); k <= P.K_Max(); k++)
@@ -1291,8 +1296,8 @@ void PRESSURE<T>::Compute_Residual(T& residual_l2, T& rhs_l2, T& residual_min,
             + (*mq.G21)(i,j,k)*(P(i+1,j  ,k  ) - P(i-1,j  ,k  )
               + P(i+1,j+1,k  ) - P(i-1,j+1,k  )) );
   }
-  // Residual on top boundary
-  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
+  // Residual on back boundary
+  if(mpi_driver->back_proc == MPI_PROC_NULL) {
     int j = P.J_Max()+1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int k = P.K_Min(); k <= P.K_Max(); k++)
@@ -1303,8 +1308,8 @@ void PRESSURE<T>::Compute_Residual(T& residual_l2, T& rhs_l2, T& residual_min,
             + (*mq.G21)(i,j-1,k)*(P(i+1,j  ,k  ) - P(i-1,j  ,k  )
               + P(i+1,j-1,k  ) - P(i-1,j-1,k  )) );
   }
-  // Residual on back boundary
-  if(mpi_driver->back_proc == MPI_PROC_NULL) {
+  // Residual on south boundary
+  if(mpi_driver->suth_proc == MPI_PROC_NULL) {
     int k = P.K_Min()-1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int j = P.J_Min(); j <= P.J_Max(); j++)
@@ -1315,8 +1320,8 @@ void PRESSURE<T>::Compute_Residual(T& residual_l2, T& rhs_l2, T& residual_min,
             + (*mq.G32)(i,j,k)*(P(i  ,j+1,k  ) - P(i  ,j-1,k  )
               + P(i  ,j+1,k+1) - P(i  ,j-1,k+1)) );
   }
-  // Residual on front boundary
-  if(mpi_driver->frnt_proc == MPI_PROC_NULL) {
+  // Residual on north boundary
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL) {
     int k = P.K_Max()+1;
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int j = P.J_Min(); j <= P.J_Max(); j++)
