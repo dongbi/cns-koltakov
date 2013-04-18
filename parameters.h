@@ -137,8 +137,8 @@ template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
   two_d = true; //two-dimensional simulation (multigrid doesn't work in y)
-  progressive_wave = false;
-  solitary_wave = true;
+  progressive_wave = true;
+  solitary_wave = false;
   scalar_advection = true;
   num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar

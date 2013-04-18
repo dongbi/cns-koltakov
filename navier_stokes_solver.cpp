@@ -983,84 +983,90 @@ void NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data()
   template<class T>
 int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
 {
-  if(parameters->time_step==parameters->save_data_timestep_period){
-    stringstream filename_g;
-    filename_g << parameters->output_dir << "grid" 
-        << "."<< mpi_driver->my_rank;
-
-    ofstream output_g(filename_g.str().c_str(), ios::out | ios::binary);
-    if(!output_g){
-      cout<<"ERROR: could not open grid file for writing"<<endl;
-      return 0;
-    }
-
-    mpi_driver->Write_Binary_Local_Array_Output(output_g, *grid->grid); 
-    output_g.close();
-  }
-
+  if(parameters->time_step==parameters->save_data_timestep_period)
+    Save_Binary_Simulation_Data("grid", *grid->grid);
+  if(parameters->save_instant_velocity)
+    Save_Binary_Simulation_Data("velocity", *u);
   if(parameters->save_instant_velocity){
-    stringstream filename_u;
-    filename_u << parameters->output_dir << "velocity" 
-      << "."<< mpi_driver->my_rank;
-
-    ofstream output_u(filename_u.str().c_str(), ios::out | ios::app | ios::binary);
-    if(!output_u){
-      cout<<"ERROR: could not open velocity file for writing"<<endl;
-      return 0;
-    }
-
-    mpi_driver->Write_Binary_Local_Array_Output(output_u, *u); 
-    output_u.close();
+    Save_Binary_Simulation_Data("density", *(*phi)(1));
+    if(parameters->save_instant_velocity)
+      Save_Binary_Simulation_Data("scalar", *(*phi)(2));
   }
-  
-  if(parameters->scalar_advection){
-    stringstream filename_rho;
-    filename_rho << parameters->output_dir << "density" 
-      << "."<< mpi_driver->my_rank;
+  if(parameters->save_pressure)
+    Save_Binary_Simulation_Data("pressure", *P);
 
-    ofstream output_rho(filename_rho.str().c_str(), ios::out | ios::app | ios::binary);
-    if(!output_rho){
-      cout<<"ERROR: could not open density file for writing"<<endl;
+  return 1;
+}
+//*****************************************************************************
+// Helper: Saving binary output data to output directory for each proc
+//*****************************************************************************
+  template<class T>
+int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data(string a_name, 
+    ARRAY_3D<T>& a)
+{
+  stringstream filename;
+
+  //overwrite existing file
+  if(parameters->time_step==parameters->save_data_timestep_period){
+    filename << parameters->output_dir << a_name << "."<< mpi_driver->my_rank;
+    ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
+    if(!output){
+      cout << "ERROR: could not open "<< a_name << " file for writing" <<endl;
       return 0;
     }
+    mpi_driver->Write_Binary_Local_Array_Output(output, a); 
+    output.close();
+  } 
 
-    mpi_driver->Write_Binary_Local_Array_Output(output_rho, *(*phi)(1)); 
-    output_rho.close();
-    
-    if(parameters->num_scalars==2){
-      stringstream filename_phi;
-      filename_phi << parameters->output_dir << "scalar" 
-        << "."<< mpi_driver->my_rank;
-
-      ofstream output_phi(filename_phi.str().c_str(), ios::out | ios::app | ios::binary);
-      if(!output_phi){
-        cout<<"ERROR: could not open scalar file for writing"<<endl;
-        return 0;
-      }
-
-      mpi_driver->Write_Binary_Local_Array_Output(output_phi, *(*phi)(2)); 
-      output_phi.close();
-    }
-  }
-
-  if(parameters->save_pressure){
-    stringstream filename_P;
-    filename_P << parameters->output_dir << "pressure" 
-      << "."<< mpi_driver->my_rank;
-
-    ofstream output_P(filename_P.str().c_str(), ios::out | ios::app | ios::binary);
-    if(!output_P){
-      cout<<"ERROR: could not open pressure file for writing"<<endl;
+  //append at end of existing file
+  else{
+    filename << parameters->output_dir << a_name << "."<< mpi_driver->my_rank;
+    ofstream output(filename.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output){
+      cout << "ERROR: could not open "<< a_name << " file for writing" <<endl;
       return 0;
     }
-
-    mpi_driver->Write_Binary_Local_Array_Output(output_P, *P); 
-    output_P.close();
+    mpi_driver->Write_Binary_Local_Array_Output(output, a); 
+    output.close();
   }
 
   return 1;
 }
+//*****************************************************************************
+// Helper: Saving binary output data to output directory for each proc
+//*****************************************************************************
+  template<class T>
+int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data(string a_name, 
+    ARRAY_3D<VECTOR_3D<T> >& a)
+{
+  stringstream filename;
 
+  //overwrite existing file
+  if(parameters->time_step==parameters->save_data_timestep_period){
+    filename << parameters->output_dir << a_name << "."<< mpi_driver->my_rank;
+    ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
+    if(!output){
+      cout << "ERROR: could not open "<< a_name << " file for writing" <<endl;
+      return 0;
+    }
+    mpi_driver->Write_Binary_Local_Array_Output(output, a); 
+    output.close();
+  } 
+
+  //append at end of existing file
+  else{
+    filename << parameters->output_dir << a_name << "."<< mpi_driver->my_rank;
+    ofstream output(filename.str().c_str(), ios::out | ios::app | ios::binary);
+    if(!output){
+      cout << "ERROR: could not open "<< a_name << " file for writing" <<endl;
+      return 0;
+    }
+    mpi_driver->Write_Binary_Local_Array_Output(output, a); 
+    output.close();
+  }
+
+  return 1;
+}
 //*****************************************************************************
 // Saving binary restart data to output directory for each proc
 //*****************************************************************************

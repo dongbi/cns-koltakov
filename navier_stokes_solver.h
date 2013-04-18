@@ -51,6 +51,8 @@ class NAVIER_STOKES_SOLVER
 
   void Save_Simulation_Data();
   int Save_Binary_Simulation_Data();
+  int Save_Binary_Simulation_Data(string a_name, ARRAY_3D<T>& a);
+  int Save_Binary_Simulation_Data(string a_name, ARRAY_3D<VECTOR_3D<T> >& a);
   int Save_Simulation_Data_For_Restart();
   int Load_Simulation_Data_For_Restart(int restart_ts);
 
