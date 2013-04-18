@@ -106,9 +106,9 @@ NAVIER_STOKES_SOLVER<T>::~NAVIER_STOKES_SOLVER()
     delete phi; 
     if(potential_energy) delete potential_energy;
     delete scalar1;
-    if(parameters->num_scalars == 2) delete scalar2;
+    if(parameters->num_scalars == 2) delete scalar2; 
   }
-  if(data_aggregator) delete data_aggregator;
+  if(parameters->aggregate_data) delete data_aggregator;
   delete grid; delete parameters; delete mpi_driver; 
 }
 //*****************************************************************************
