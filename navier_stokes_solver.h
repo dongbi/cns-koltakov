@@ -50,6 +50,7 @@ class NAVIER_STOKES_SOLVER
   void Add_Pressure_Gradient_Term(ARRAY_3D<VECTOR_3D<T> >& RHS);
 
   void Save_Simulation_Data();
+  int Save_Binary_Simulation_Parameters();
   int Save_Binary_Simulation_Data();
   int Save_Binary_Simulation_Data(string a_name, ARRAY_3D<T>& a);
   int Save_Binary_Simulation_Data(string a_name, ARRAY_3D<VECTOR_3D<T> >& a);

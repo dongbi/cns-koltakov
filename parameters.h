@@ -136,7 +136,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  two_d = true; //two-dimensional simulation (multigrid doesn't work in y)
+  two_d = false; //two-dimensional simulation (multigrid doesn't work in y)
   progressive_wave = true;
   solitary_wave = false;
   scalar_advection = true;
