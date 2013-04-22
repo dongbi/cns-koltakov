@@ -23,7 +23,7 @@ class PARAMETERS
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
       turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d,
-      progressive_wave, solitary_wave;
+      progressive_wave, solitary_wave, density_perturbation_in_y;
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
@@ -39,7 +39,8 @@ class PARAMETERS
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
     omega, amp_p_grad, freq_p_grad, alpha, delta, ratio, rho0, a, Lw, 
-    upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, rise, run;
+    upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, rise, run,
+    delta_perturb, lambda_perturb;
   std::string output_dir, grid_filename;
   int argc; 
   char** argv;
@@ -140,6 +141,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   progressive_wave = true;
   solitary_wave = false;
   scalar_advection = true;
+  density_perturbation_in_y = true; //to help initialize turbulence
   num_scalars = 2; //1: rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
@@ -183,6 +185,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   Lw = .7; //solitary wavelength 
   forcing_amp = .05; //progressive wave amplitude
   forcing_period = 10; //progressive wave period
+  delta_perturb = 0.01; //initial interface perturbation
+  lambda_perturb = delta; //perturbation wavelength
 
   //bottom bathymetry
   x_s = 1.; //x position at beginning of slope
