@@ -26,11 +26,11 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
   //initialize scalar
   phi = new ARRAY_1D<ARRAY_3D<T>* >(parameters->num_scalars);
   if(parameters->scalar_advection){
-    //rho = new ARRAY_3D<T>(*u); 
     (*phi)(1) = new ARRAY_3D<T>(parameters->i_min, parameters->i_max, 
         parameters->j_min, parameters->j_max, 
         parameters->k_min, parameters->k_max, parameters->halo_size); //rho
-    (*phi)(2) = new ARRAY_3D<T>(*(*phi)(1)); //passive scalar
+    if(parameters->num_scalars==2)
+      (*phi)(2) = new ARRAY_3D<T>(*(*phi)(1)); //passive scalar
   }
   else{ 
     //rho = NULL;
@@ -988,9 +988,9 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data()
     Save_Binary_Simulation_Data("grid", *grid->grid);
   if(parameters->save_instant_velocity)
     Save_Binary_Simulation_Data("velocity", *u);
-  if(parameters->save_instant_velocity){
+  if(parameters->scalar_advection){
     Save_Binary_Simulation_Data("density", *(*phi)(1));
-    if(parameters->save_instant_velocity)
+    if(parameters->num_scalars==2)
       Save_Binary_Simulation_Data("scalar", *(*phi)(2));
   }
   if(parameters->save_pressure)
