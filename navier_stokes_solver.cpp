@@ -33,9 +33,7 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
       (*phi)(2) = new ARRAY_3D<T>(*(*phi)(1)); //passive scalar
   }
   else{ 
-    //rho = NULL;
     (*phi)(1) = NULL;
-    (*phi)(2) = NULL;
   }
 
   //initialize mpi driver and grid (moving or stationary) classes

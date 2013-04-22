@@ -142,7 +142,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   solitary_wave = false;
   scalar_advection = true;
   density_perturbation_in_y = false; //to help initialize turbulence
-  num_scalars = 1; //1: rho only, 2: rho and passive scalar
+  num_scalars = 1; //1: no scalar or rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
