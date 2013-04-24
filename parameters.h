@@ -142,7 +142,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   solitary_wave = false;
   scalar_advection = true;
   density_perturbation_in_y = false; //to help initialize turbulence
-  num_scalars = 1; //1: no scalar or rho only, 2: rho and passive scalar
+  num_scalars = 2; //1: no scalar or rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
@@ -172,25 +172,25 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   //save_data_timestep_period = 500; //write on disk after each period
   save_fluxes = false; 
   save_instant_velocity = true; //save instantaneous velocity field
-  save_pressure = false; //save pressure field
+  save_pressure = true; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
   //stratification and wave forcing
   alpha = 0.99; //interface thickness parameter
-  delta = 0.15; //interface thickness parameter
-  ratio = 0.02; //delta_rho/rho0
+  delta = 0.03; //interface thickness parameter
+  ratio = 0.03; //delta_rho/rho0
   rho0 = 1000.; //reference density
   upper_layer_depth = 0.25; //h_1
   a = 0.1; //solitary wave amplitude 
   Lw = .7; //solitary wavelength 
-  forcing_amp = .05; //progressive wave amplitude
+  forcing_amp = .03; //progressive wave amplitude
   forcing_period = 10; //progressive wave period
-  delta_perturb = 0.01; //initial interface perturbation
-  lambda_perturb = delta; //perturbation wavelength
+  delta_perturb = 0.01; //initial interface perturbation amplitude
+  lambda_perturb = .5; //initial interface perturbation wavelength
 
   //bottom bathymetry
   x_s = 1.; //x position at beginning of slope
-  rise = 0.05; //slope rise
+  rise = .105; //.218; //slope rise
   run = 1.; //slope run
 
   // multigrid

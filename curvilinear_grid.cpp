@@ -158,8 +158,8 @@ void CURVILINEAR_GRID<T>::Stretch_In_Vertical_To_Resolve_Bottom()
   for(int i = i_min_w_h; i <= i_max_w_h; i++)
     for(int j = j_min_w_h; j <= j_max_w_h; j++)
       for(int k = k_min_w_h; k <= k_max_w_h; k++)
-        if(k_local_min+j-1 >= k_min_w_h)
-          (*grid)(i,j,k).z = dz_min * (1. - pow(r,k_local_min+j-1)) / (1. - r);
+        if(k_local_min+k-1 >= k_min_w_h)
+          (*grid)(i,j,k).z = dz_min * (1. - pow(r,k_local_min+k-1)) / (1. - r);
         else
           (*grid)(i,j,k).z = -dz_min * halo_size; //halo equal cells below 0
 }
