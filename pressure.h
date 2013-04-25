@@ -435,7 +435,7 @@ void PRESSURE<T>::Extend_Array(ARRAY_3D<T>& P_condensed, ARRAY_3D<T>& P)
       for(int jc = P_condensed.J_Min()-1; jc <= P_condensed.J_Max(); jc++)
         for(int kc = P_condensed.K_Min()-1; kc <= P_condensed.K_Max(); kc++){
           int i = 2*ic, j = jc, k = 2*kc; 
-
+          /*
           T p000=P_condensed(ic,jc,kc),     p100=P_condensed(ic+1,jc,kc),
             p010=P_condensed(ic,jc+1,kc),   p001=P_condensed(ic,jc,kc+1),
             p011=P_condensed(ic,jc+1,kc+1), p101=P_condensed(ic+1,jc,kc+1),
@@ -449,24 +449,22 @@ void PRESSURE<T>::Extend_Array(ARRAY_3D<T>& P_condensed, ARRAY_3D<T>& P)
           P(i,j,k+1) += p000;
           // Corner: 101
           P(i+1,j,k+1) += p000;
-
-          /*
+          */
           T p000=P_condensed(ic,jc,kc),   p100=P_condensed(ic+1,jc,kc),
             p001=P_condensed(ic,jc,kc+1), p101=P_condensed(ic+1,jc,kc+1);
           // updating 8 corners of each sub-cell
           // Corner: 000
-          P(i,j,k)   += (T).015625*((T)27*p000 + (T)9*(p100+p001) 
-              + (T)3*(p101) );
+          P(i,j,k)   += (T).015625*((T)27*p000 + (T)6*(p100+p001) 
+              + (T)1*(p101) );
           // Corner: 100
-          P(i+1,j,k) += (T).015625*((T)27*p100 + (T)9*(p000+p101) 
-              + (T)3*(p001) );
+          P(i+1,j,k) += (T).015625*((T)27*p100 + (T)6*(p000+p101) 
+              + (T)1*(p001) );
           // Corner: 001
-          P(i,j,k+1) += (T).015625*((T)27*p001 + (T)9*(p101+p000) 
-              + (T)3*(p100) );
+          P(i,j,k+1) += (T).015625*((T)27*p001 + (T)6*(p101+p000) 
+              + (T)1*(p100) );
           // Corner: 101
-          P(i+1,j,k+1) += (T).015625*((T)27*p101 + (T)9*(p001+p100) 
-              + (T)3*(p000) );
-          */
+          P(i+1,j,k+1) += (T).015625*((T)27*p101 + (T)6*(p001+p100) 
+              + (T)1*(p000) );
           
         }//for_loops: ic,jc,kc
   }

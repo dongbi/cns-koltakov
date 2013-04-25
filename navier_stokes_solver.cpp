@@ -89,7 +89,7 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
     Set_Initial_Conditions();
     //wait for all procs to get here and then save data for ts=0
     mpi_driver->Syncronize_All_Procs();
-    //Save_Simulation_Data(); 
+    Save_Simulation_Data(); 
     if(mpi_driver->my_rank == 0) Save_Binary_Simulation_Parameters();
   }else Load_Simulation_Data_For_Restart(parameters->restart_timestep);
 }
@@ -1255,9 +1255,8 @@ if(parameters->scalar_advection) {
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2));
-          if(parameters->density_perturbation_in_y)
-            zeta += delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
+          zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2))
+                  + delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
           (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
                 parameters->z_length/interface_loc)/delta*atanh(alpha));          
         }
@@ -1270,10 +1269,7 @@ if(parameters->scalar_advection) {
     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          if(parameters->density_perturbation_in_y)
-            zeta = delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
-          else
-            zeta = 0.;
+          zeta = delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
           (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
                 parameters->z_length/interface_loc)/delta*atanh(alpha));           
         }

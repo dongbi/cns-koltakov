@@ -23,7 +23,7 @@ class PARAMETERS
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
       turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d,
-      progressive_wave, solitary_wave, density_perturbation_in_y;
+      progressive_wave, solitary_wave; 
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
@@ -61,6 +61,26 @@ class PARAMETERS
     parser->Parse_Parameter_File();
     Set_Parsable_Values();
     Set_Remaining_Parameters();
+    
+    //test print
+    cout << "x_stretch =" << x_stretching_ratio << endl;
+    cout << "z_stretch =" << z_stretching_ratio << endl;
+    cout << "alpha =" << alpha << endl;
+    cout << "delta =" << delta << endl;
+    cout << "ratio =" << ratio << endl;
+    cout << "rho0 =" << rho0 << endl;
+    cout << "uld =" << upper_layer_depth << endl;
+    cout << "a =" << a << endl;
+    cout << "Lw =" << Lw << endl;
+    cout << "f_a =" << forcing_amp << endl;
+    cout << "f_p =" << forcing_period << endl;
+    cout << "d_p =" << delta_perturb << endl;
+    cout << "l_p =" << lambda_perturb << endl;
+    cout << "x_s =" << x_s << endl;
+    cout << "rise =" << rise << endl;
+    cout << "run =" << run << endl;
+    cout << "two_d =" << two_d << endl;
+
   }
 
   ~PARAMETERS()
@@ -119,16 +139,36 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("num_cpu_x",num_cpu_x)) num_cpu_x = 4;
   if(!parser->Get_Value("num_cpu_y",num_cpu_y)) num_cpu_y = 2;
   if(!parser->Get_Value("num_cpu_z",num_cpu_z)) num_cpu_z = 2;
+  // grid stretching
+  if(!parser->Get_Value("x_stretching_ratio",x_stretching_ratio)) x_stretching_ratio = 0.;
+  if(!parser->Get_Value("z_stretching_ratio",z_stretching_ratio)) z_stretching_ratio = 0.;
+  // time stepping
   if(!parser->Get_Value("delta_time",delta_time)) delta_time = .002;
   if(!parser->Get_Value("max_timestep",max_timestep)) max_timestep = 200000;
   if(!parser->Get_Value("save_data_timestep_period",save_data_timestep_period))
     save_data_timestep_period = 500;
   if(!parser->Get_Value("print_timestep_period",print_timestep_period))
     print_timestep_period = 1;
+  if(!parser->Get_Value("restart_timestep",restart_timestep))restart_timestep = 0;
   if(!parser->Get_Value("molecular_viscosity",molecular_viscosity)) 
     molecular_viscosity = 1e-6;
+  // initial conditions
+  if(!parser->Get_Value("alpha",alpha)) alpha = .99;
+  if(!parser->Get_Value("delta",delta)) delta = .03;
+  if(!parser->Get_Value("ratio",ratio)) ratio = .03;
+  if(!parser->Get_Value("rho0",rho0)) rho0 = 1000.;
+  if(!parser->Get_Value("upper_layer_depth",upper_layer_depth)) upper_layer_depth = .25;
+  if(!parser->Get_Value("a",a)) a = .1;
+  if(!parser->Get_Value("Lw",Lw)) Lw = .7;
+  if(!parser->Get_Value("forcing_amp",forcing_amp)) forcing_amp = .05;
+  if(!parser->Get_Value("forcing_period",forcing_period)) forcing_period = 10.;
+  if(!parser->Get_Value("delta_perturb",delta_perturb)) delta_perturb = 0.;
+  if(!parser->Get_Value("lambda_perturb",lambda_perturb)) lambda_perturb = 1.;
+  if(!parser->Get_Value("x_s",x_s)) x_s = 1.;
+  if(!parser->Get_Value("rise",rise)) rise = .1;
+  if(!parser->Get_Value("run",run)) run = 1.;
+  // output
   if(!parser->Get_Value("output_dir",output_dir)) output_dir = "./output/";
-  if(!parser->Get_Value("restart_timestep",restart_timestep))restart_timestep = 0;
 }
 //*****************************************************************************
 // 1) Sets parameters not expected from 'parameters.dat'
@@ -137,11 +177,13 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  two_d = false; //two-dimensional simulation (multigrid doesn't work in y)
+  if(num_total_nodes_y==1)
+    two_d = true; //two-dimensional simulation (multigrid doesn't work in y)
+  else
+    two_d = false;
   progressive_wave = true;
   solitary_wave = false;
   scalar_advection = true;
-  density_perturbation_in_y = false; //to help initialize turbulence
   num_scalars = 2; //1: no scalar or rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
@@ -160,8 +202,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_z = false;
   stretch_in_y = false;
-  x_stretching_ratio = (T)0.; //(T)1.01;
-  z_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
+  //x_stretching_ratio = (T)0.; //(T)1.01;
+  //z_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -175,6 +217,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   save_pressure = true; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
 
+  /*
   //stratification and wave forcing
   alpha = 0.99; //interface thickness parameter
   delta = 0.03; //interface thickness parameter
@@ -187,11 +230,12 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   forcing_period = 10; //progressive wave period
   delta_perturb = 0.01; //initial interface perturbation amplitude
   lambda_perturb = .5; //initial interface perturbation wavelength
-
+  
   //bottom bathymetry
   x_s = 1.; //x position at beginning of slope
   rise = .105; //.218; //slope rise
   run = 1.; //slope run
+  */
 
   // multigrid
   mg_sub_levels = -1; //negative => optimal: calculated below
