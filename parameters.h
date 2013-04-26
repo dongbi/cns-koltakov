@@ -61,7 +61,7 @@ class PARAMETERS
     parser->Parse_Parameter_File();
     Set_Parsable_Values();
     Set_Remaining_Parameters();
-    
+    /*
     //test print
     cout << "x_stretch =" << x_stretching_ratio << endl;
     cout << "z_stretch =" << z_stretching_ratio << endl;
@@ -80,7 +80,7 @@ class PARAMETERS
     cout << "rise =" << rise << endl;
     cout << "run =" << run << endl;
     cout << "two_d =" << two_d << endl;
-
+    */
   }
 
   ~PARAMETERS()

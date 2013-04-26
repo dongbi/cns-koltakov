@@ -89,7 +89,7 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
     Set_Initial_Conditions();
     //wait for all procs to get here and then save data for ts=0
     mpi_driver->Syncronize_All_Procs();
-    Save_Simulation_Data(); 
+    //Save_Simulation_Data(); 
     if(mpi_driver->my_rank == 0) Save_Binary_Simulation_Parameters();
   }else Load_Simulation_Data_For_Restart(parameters->restart_timestep);
 }

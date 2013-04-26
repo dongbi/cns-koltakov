@@ -4,7 +4,7 @@
  z_max  =    0                     // domain dimensions vertical: Z max
  y_min  =    0                     // domain dimensions transverse: Y min
  y_max  =    .3                    // domain dimensions transverse: Y max
- num_total_nodes_x  = 128          // number of grid nodes in X coordinate
+ num_total_nodes_x  = 128           // number of grid nodes in X coordinate
  num_total_nodes_z  = 32           // number of grid nodes in Z coordinate
  num_total_nodes_y  = 1            // number of grid nodes in Y coordinate
  num_cpu_x  =  4                   // number of processors in X coordinate
