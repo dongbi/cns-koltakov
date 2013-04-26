@@ -9,7 +9,7 @@
  num_total_nodes_y  = 1            // number of grid nodes in Y coordinate
  num_cpu_x  =  4                   // number of processors in X coordinate
  num_cpu_z  =  1                   // number of processors in Z coordinate
- num_cpu_y  =  1                   // number of processors in Y coordinate
+ num_cpu_y  =  1                  // number of processors in Y coordinate
  x_stretching_ratio = 0.           // push grid points toward the right
  z_stretching_ratio = 0.           // push grid points toward the bottom
  delta_time = .1                   // delta time

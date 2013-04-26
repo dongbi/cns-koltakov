@@ -243,7 +243,7 @@ void SCALAR<T>::Solve()
 
   for(int j = jmin; j <= jmax; j++){
     // Construct tridiagonal matrices A,B,C for LHS and F for RHS(of system)
-    for(int k = kmin; k <= kmax; j++)
+    for(int k = kmin; k <= kmax; k++)
       for(int i = imin; i <= imax; i++){
         T diffusivity_minus = parameters->molecular_diffusivity,
           diffusivity_plus  = parameters->molecular_diffusivity;
@@ -262,7 +262,7 @@ void SCALAR<T>::Solve()
       }// for: k,i
     // Boundary conditions for I-direction: west
     if(mpi_driver->west_proc == MPI_PROC_NULL)
-      for(int k = kmin; k <= kmax; j++){
+      for(int k = kmin; k <= kmax; k++){
         (*A)(k,imin-1) = (T)0;
         (*B)(k,imin-1) = (T)1;
         (*C)(k,imin-1) = (T)-1;
@@ -292,18 +292,15 @@ void SCALAR<T>::Solve()
         (*RHS_for_AB)(imax+1,j,k) /= (*grid->G11)(imax,j,k);
         (*F)(k,imax+1) = (*RHS_for_AB)(imax+1,j,k); 
       }//east BC
-
     //solve tridiagonal system
     LS_Solver.Solve_Array_Of_Tridiagonal_Linear_Systems(*A, *B, *C, *F, 
         parameters->periodic_in_x, mpi_driver->west_proc, mpi_driver->east_proc);
-
     //solution of linear system is in F
     for(int k = kmin; k <= kmax; k++)
       for(int i = imin; i <= imax; i++)
         (*RHS)(i,j,k) = (*F)(k,i);
   }//for: j
   delete A; delete B; delete C; delete F;
-
   //--------------------------------------------------------------------------
   // Solve for J-DIRECTION: (I-(dt/2J^{-1})*D_22)(rho^*-rho^n)_j = RHS 
   //--------------------------------------------------------------------------
@@ -443,7 +440,7 @@ void SCALAR<T>::Solve()
     for(int i = imin; i <= imax; i++)
       for(int k = kmin; k <= kmax; k++)
         (*RHS)(i,j,k) = (*F)(i,k);
-  }//for: k
+  }//for: j
   delete A; delete B; delete C; delete F;
 
   // Update scalar field
