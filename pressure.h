@@ -656,20 +656,21 @@ void PRESSURE<T>::Smooth_Pressure_In_X(ARRAY_3D<T>& P, ARRAY_3D<T>& RHS,
     ARRAY_3D<T>& Res, METRIC_QUANTITIES<T>& mq, METRIC_QUANTITIES<T>& mq_new)
 {
   // LHS diagonals and RHS for tridiagonal linear system solve
-  ARRAY_2D<T> A(P.J_Min(), P.J_Max(), P.I_Min()-1, P.I_Max()+1, 0),
-    B(P.J_Min(), P.J_Max(), P.I_Min()-1, P.I_Max()+1, 0), 
-    C(P.J_Min(), P.J_Max(), P.I_Min()-1, P.I_Max()+1, 0), 
-    F(P.J_Min(), P.J_Max(), P.I_Min()-1, P.I_Max()+1, 0);    
+  ARRAY_2D<T> A(P.K_Min(), P.K_Max(), P.I_Min()-1, P.I_Max()+1, 0),
+    B(P.K_Min(), P.K_Max(), P.I_Min()-1, P.I_Max()+1, 0), 
+    C(P.K_Min(), P.K_Max(), P.I_Min()-1, P.I_Max()+1, 0), 
+    F(P.K_Min(), P.K_Max(), P.I_Min()-1, P.I_Max()+1, 0);    
   TRIDIAGONAL_SOLVER<T> LS_Solver(*mpi_driver);
+
   // Residual in the interior region
   for(int i = P.I_Min(); i <= P.I_Max(); i++)
     for(int j = P.J_Min(); j <= P.J_Max(); j++)
       for(int k = P.K_Min(); k <= P.K_Max(); k++) {
         Res(i,j,k) = - RHS(i,j,k) +
           ( (*mq_new.G22)(i  ,j  ,k  ) * P(i  ,j+1,k  )
-            + (*mq_new.G22)(i  ,j-1,k  ) * P(i  ,j-1,k  )
-            + (*mq_new.G33)(i  ,j  ,k  ) * P(i  ,j  ,k+1)
-            + (*mq_new.G33)(i  ,j  ,k-1) * P(i  ,j  ,k-1) );
+          + (*mq_new.G22)(i  ,j-1,k  ) * P(i  ,j-1,k  )
+          + (*mq_new.G33)(i  ,j  ,k  ) * P(i  ,j  ,k+1)
+          + (*mq_new.G33)(i  ,j  ,k-1) * P(i  ,j  ,k-1) );
         Res(i,j,k) += 
           (*mq_new.G12)(i  ,j,k)*(P(i  ,j+1,k  ) - P(i  ,j-1,k  )
               + P(i+1,j+1,k  ) - P(i+1,j-1,k  ))
@@ -698,37 +699,37 @@ void PRESSURE<T>::Smooth_Pressure_In_X(ARRAY_3D<T>& P, ARRAY_3D<T>& RHS,
   Fill_In_Residual_On_Six_Boundary_Faces(Res, P, RHS, mq);
 
   // Setting up linear system
-  for(int k = P.K_Min(); k <= P.K_Max(); k++) {
+  for(int j = P.J_Min(); j <= P.J_Max(); j++) {
 
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
-      for(int j = P.J_Min(); j <= P.J_Max(); j++){
-        A(j,i) = - (*mq_new.G11)(i-1,j,k)
+      for(int k = P.K_Min(); k <= P.K_Max(); k++){
+        A(k,i) = - (*mq_new.G11)(i-1,j,k)
           + (*mq_new.G21)(i,j,k) - (*mq_new.G21)(i,j-1,k) 
           + (*mq_new.G31)(i,j,k) - (*mq_new.G31)(i,j,k-1);
-        C(j,i) = - (*mq_new.G11)(i  ,j,k) 
+        C(k,i) = - (*mq_new.G11)(i  ,j,k) 
           - (*mq_new.G21)(i,j,k) + (*mq_new.G21)(i,j-1,k)
           - (*mq_new.G31)(i,j,k) + (*mq_new.G31)(i,j,k-1); 
-        B(j,i) =   (*mq_new.GCC)(i,j,k);
-        F(j,i) =   Res(i,j,k);
-      }//for: i,j
+        B(k,i) =   (*mq_new.GCC)(i,j,k);
+        F(k,i) =   Res(i,j,k);
+      }//for: i,k
     //bc: west
     if(mpi_driver->west_proc == MPI_PROC_NULL) {
       int i = P.I_Min()-1;
-      for(int j = P.J_Min(); j <= P.J_Max(); j++){
-        A(j,i) =   (T)0;
-        B(j,i) =   (*mq.G11)(i,j,k);
-        C(j,i) = - (*mq.G11)(i,j,k);
-        F(j,i) =   Res(i,j,k);
+      for(int k = P.K_Min(); k <= P.K_Max(); k++){
+        A(k,i) =   (T)0;
+        B(k,i) =   (*mq.G11)(i,j,k);
+        C(k,i) = - (*mq.G11)(i,j,k);
+        F(k,i) =   Res(i,j,k);
       }
     }
     //bc: east
     if(mpi_driver->east_proc == MPI_PROC_NULL) {
       int i = P.I_Max()+1;
-      for(int j = P.J_Min(); j <= P.J_Max(); j++){
-        A(j,i) =   (*mq.G11)(i-1,j,k);
-        B(j,i) = - (*mq.G11)(i-1,j,k);
-        C(j,i) =   (T)0;
-        F(j,i) =   Res(i,j,k);
+      for(int k = P.K_Min(); k <= P.K_Max(); k++){
+        A(k,i) =   (*mq.G11)(i-1,j,k);
+        B(k,i) = - (*mq.G11)(i-1,j,k);
+        C(k,i) =   (T)0;
+        F(k,i) =   Res(i,j,k);
       }
     }
 
@@ -738,9 +739,9 @@ void PRESSURE<T>::Smooth_Pressure_In_X(ARRAY_3D<T>& P, ARRAY_3D<T>& RHS,
 
     // save solution F
     for(int i = Res.I_Min()-1; i <= Res.I_Max()+1; i++)
-      for(int j = Res.J_Min(); j <= Res.J_Max(); j++)
-        Res(i,j,k) = F(j,i);
-  }//for: k
+      for(int k = Res.K_Min(); k <= Res.K_Max(); k++)
+        Res(i,j,k) = F(k,i);
+  }//for: j
 
   // Fix other 4 boundaries
   //bc: frnt
@@ -970,7 +971,6 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
   // Setting up linear system
   for(int j = P.J_Min(); j <= P.J_Max(); j++){
 
-
     for(int i = P.I_Min(); i <= P.I_Max(); i++)
       for(int k = P.K_Min(); k <= P.K_Max(); k++) {
         A(i,k) = - (*mq_new.G33)(i,j,k-1)
@@ -1011,7 +1011,7 @@ void PRESSURE<T>::Smooth_Pressure_In_Z(
     for(int i = Res.I_Min(); i <= Res.I_Max(); i++)
       for(int k = Res.K_Min()-1; k <= Res.K_Max()+1; k++)
         Res(i,j,k) = F(i,k);
-  }//end_for: k
+  }//end_for: j
 
   // Fix the other 4 boundaries
   //bc: west
