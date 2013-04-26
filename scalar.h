@@ -236,14 +236,14 @@ void SCALAR<T>::Solve()
   //--------------------------------------------------------------------------
   // Solve for I-DIRECTION: (I-(dt/2J^{-1})*D_11)(rho^*-rho^n)_i = RHS
   //--------------------------------------------------------------------------
-  A = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0); //halo=0
-  B = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0);
-  C = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0);
-  F = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0);
+  A = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0); //halo=0
+  B = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0);
+  C = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0);
+  F = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0);
 
-  for(int k = kmin; k <= kmax; k++){
+  for(int j = jmin; j <= jmax; j++){
     // Construct tridiagonal matrices A,B,C for LHS and F for RHS(of system)
-    for(int j = jmin; j <= jmax; j++)
+    for(int k = kmin; k <= kmax; j++)
       for(int i = imin; i <= imax; i++){
         T diffusivity_minus = parameters->molecular_diffusivity,
           diffusivity_plus  = parameters->molecular_diffusivity;
@@ -253,19 +253,19 @@ void SCALAR<T>::Solve()
           diffusivity_plus  += (T).5*((*turbulence->eddy_diffusivity)(i,j,k) + 
               (*turbulence->eddy_diffusivity)(i+1,j,k));
         }
-        (*A)(j,i) = - diffusivity_minus * (T).5 * parameters->delta_time * 
+        (*A)(k,i) = - diffusivity_minus * (T).5 * parameters->delta_time * 
           (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i-1,j,k);
-        (*C)(j,i) = - diffusivity_plus  * (T).5 * parameters->delta_time * 
+        (*C)(k,i) = - diffusivity_plus  * (T).5 * parameters->delta_time * 
           (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i,j,k);
-        (*B)(j,i) = (T)1 - (*A)(j,i) - (*C)(j,i);
-        (*F)(j,i) = (*RHS)(i,j,k);
-      }// for: j,i
+        (*B)(k,i) = (T)1 - (*A)(k,i) - (*C)(k,i);
+        (*F)(k,i) = (*RHS)(i,j,k);
+      }// for: k,i
     // Boundary conditions for I-direction: west
     if(mpi_driver->west_proc == MPI_PROC_NULL)
-      for(int j = jmin; j <= jmax; j++){
-        (*A)(j,imin-1) = (T)0;
-        (*B)(j,imin-1) = (T)1;
-        (*C)(j,imin-1) = (T)-1;
+      for(int k = kmin; k <= kmax; j++){
+        (*A)(k,imin-1) = (T)0;
+        (*B)(k,imin-1) = (T)1;
+        (*C)(k,imin-1) = (T)-1;
         // RHS : BC west
         (*RHS_for_AB)(imin-1,j,k) = (*grid->G12)(imin-1,j,k) * 
           ( (*Rho)(imin-1,j+1,k) - (*Rho)(imin-1,j-1,k)
@@ -274,14 +274,14 @@ void SCALAR<T>::Solve()
           ( (*Rho)(imin-1,j,k+1) - (*Rho)(imin-1,j,k-1) 
             + (*Rho)(imin  ,j,k+1) - (*Rho)(imin  ,j,k-1) );
         (*RHS_for_AB)(imin-1,j,k) /= (*grid->G11)(imin-1,j,k);
-        (*F)(j,imin-1) = (*RHS_for_AB)(imin-1,j,k);
+        (*F)(k,imin-1) = (*RHS_for_AB)(imin-1,j,k);
       }// west BC
     // Boundary conditions for I-direction: east
     if(mpi_driver->east_proc == MPI_PROC_NULL)
-      for(int j = jmin; j <= jmax; j++){
-        (*A)(j,imax+1) = (T)1;
-        (*B)(j,imax+1) = (T)-1;
-        (*C)(j,imax+1) = (T)0;
+      for(int k = kmin; k <= kmax; k++){
+        (*A)(k,imax+1) = (T)1;
+        (*B)(k,imax+1) = (T)-1;
+        (*C)(k,imax+1) = (T)0;
         // RHS : BC east
         (*RHS_for_AB)(imax+1,j,k) = (*grid->G12)(imax,j,k) * 
           ( (*Rho)(imax  ,j+1,k) - (*Rho)(imax  ,j-1,k)
@@ -290,7 +290,7 @@ void SCALAR<T>::Solve()
           ( (*Rho)(imax  ,j,k+1) - (*Rho)(imax  ,j,k-1) 
             + (*Rho)(imax+1,j,k+1) - (*Rho)(imax+1,j,k-1) );
         (*RHS_for_AB)(imax+1,j,k) /= (*grid->G11)(imax,j,k);
-        (*F)(j,imax+1) = (*RHS_for_AB)(imax+1,j,k);
+        (*F)(k,imax+1) = (*RHS_for_AB)(imax+1,j,k); 
       }//east BC
 
     //solve tridiagonal system
@@ -298,10 +298,10 @@ void SCALAR<T>::Solve()
         parameters->periodic_in_x, mpi_driver->west_proc, mpi_driver->east_proc);
 
     //solution of linear system is in F
-    for(int j = jmin; j <= jmax; j++)
+    for(int k = kmin; k <= kmax; k++)
       for(int i = imin; i <= imax; i++)
-        (*RHS)(i,j,k) = (*F)(j,i);
-  }//for: k
+        (*RHS)(i,j,k) = (*F)(k,i);
+  }//for: j
   delete A; delete B; delete C; delete F;
 
   //--------------------------------------------------------------------------

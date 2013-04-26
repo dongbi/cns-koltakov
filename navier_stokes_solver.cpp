@@ -301,14 +301,14 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
   //--------------------------------------------------------------------------
   // Solve for I-DIRECTION: (I-(dt/2J^{-1})*D_11)(u^*-u^n)_i = RHS
   //--------------------------------------------------------------------------
-  A = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0); //halo=0
-  B = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0);
-  C = new ARRAY_2D<T>(jmin,jmax, imin-1,imax+1, 0);
-  F = new ARRAY_2D<VECTOR_3D<T> >(jmin,jmax, imin-1,imax+1, 0);
+  A = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0); //halo=0
+  B = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0);
+  C = new ARRAY_2D<T>(kmin,kmax, imin-1,imax+1, 0);
+  F = new ARRAY_2D<VECTOR_3D<T> >(kmin,kmax, imin-1,imax+1, 0);
 
-  for(int k = kmin; k <= kmax; k++){
+  for(int j = jmin; j <= jmax; j++){
     // Construct tridiagonal matrices A,B,C for LHS and F for RHS(of system)
-    for(int j = jmin; j <= jmax; j++)
+    for(int k = kmin; k <= kmax; k++)
       for(int i = imin; i <= imax; i++){
         T viscosity_minus = parameters->molecular_viscosity,
           viscosity_plus  = parameters->molecular_viscosity;
@@ -318,21 +318,21 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
           viscosity_plus  += (T).5*( (*turbulence->eddy_viscosity)(i,j,k) + 
               (*turbulence->eddy_viscosity)(i+1,j,k) );
         }
-        (*A)(j,i) = - viscosity_minus * (T).5 * parameters->delta_time * 
+        (*A)(k,i) = - viscosity_minus * (T).5 * parameters->delta_time * 
           (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i-1,j,k);
-        (*C)(j,i) = - viscosity_plus  * (T).5 * parameters->delta_time * 
+        (*C)(k,i) = - viscosity_plus  * (T).5 * parameters->delta_time * 
           (*grid->inverse_Jacobian)(i,j,k) * (*grid->G11)(i,j,k);
-        (*B)(j,i) = (T)1 - (*A)(j,i) - (*C)(j,i);
-        (*F)(j,i) = RHS(i,j,k);
-      }// for: j,i
+        (*B)(k,i) = (T)1 - (*A)(k,i) - (*C)(k,i);
+        (*F)(k,i) = RHS(i,j,k);
+      }// for: k,i
     // Boundary conditions for I-direction: west
     if(mpi_driver->west_proc == MPI_PROC_NULL)
-      for(int j = jmin; j <= jmax; j++){
-        (*A)(j,imin-1) = (T)0;	// imin-1 is 0 (in F code)
-        (*B)(j,imin-1) = (T)1;	// free-slip: u_0 = u_1
+      for(int k = kmin; k <= kmax; k++){
+        (*A)(k,imin-1) = (T)0;	// imin-1 is 0 (in F code)
+        (*B)(k,imin-1) = (T)1;	// free-slip: u_0 = u_1
         switch(parameters->west_bc){
-          case FREE_SLIP: (*C)(j,imin-1) = (T)-1; break;
-          case   NO_SLIP: (*C)(j,imin-1) = (T)1; break;
+          case FREE_SLIP: (*C)(k,imin-1) = (T)-1; break;
+          case   NO_SLIP: (*C)(k,imin-1) = (T)1; break;
         }
         // RHS : BC west
         T dP_dXI = (*P)(imin  ,j  ,k  ) - (*P)(imin-1,j  ,k  ),
@@ -342,26 +342,26 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
             (*P)(imin  ,j  ,k+1) - (*P)(imin  ,j  ,k-1);
         T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(imin,j,k);
 
-        (*F)(j,imin-1).x = (*grid->XI_x)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
+        (*F)(k,imin-1).x = (*grid->XI_x)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
           (T).125*((*grid->ET_x)(imin,j-1,k)+(*grid->ET_x)(imin,j,k)) * dP_dET +
           (T).125*((*grid->ZT_x)(imin,j,k-1)+(*grid->ZT_x)(imin,j,k)) * dP_dZT;
-        (*F)(j,imin-1).y = (*grid->XI_y)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
+        (*F)(k,imin-1).y = (*grid->XI_y)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
           (T).125*((*grid->ET_y)(imin,j-1,k)+(*grid->ET_y)(imin,j,k)) * dP_dET +
           (T).125*((*grid->ZT_y)(imin,j,k-1)+(*grid->ZT_y)(imin,j,k)) * dP_dZT;
-        (*F)(j,imin-1).z = (*grid->XI_z)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
+        (*F)(k,imin-1).z = (*grid->XI_z)(imin-1,j,k) * dP_dXI + //imin-1||imin ?
           (T).125*((*grid->ET_z)(imin,j-1,k)+(*grid->ET_z)(imin,j,k)) * dP_dET +
           (T).125*((*grid->ZT_z)(imin,j,k-1)+(*grid->ZT_z)(imin,j,k)) * dP_dZT;
-        (*F)(j,imin-1) *= coeff;
+        (*F)(k,imin-1) *= coeff;
       }// west BC
     // Boundary conditions for I-direction: east
     if(mpi_driver->east_proc == MPI_PROC_NULL)
-      for(int j = jmin; j <= jmax; j++){
+      for(int k = kmin; k <= kmax; k++){
         switch(parameters->east_bc){
-          case FREE_SLIP: (*A)(j,imax+1) = (T)-1; break;// free-slip: u_0 = u_1
-          case   NO_SLIP: (*A)(j,imax+1) = (T)1;  break;
+          case FREE_SLIP: (*A)(k,imax+1) = (T)-1; break;// free-slip: u_0 = u_1
+          case   NO_SLIP: (*A)(k,imax+1) = (T)1;  break;
         }
-        (*B)(j,imax+1) = (T)1;
-        (*C)(j,imax+1) = (T)0;
+        (*B)(k,imax+1) = (T)1;
+        (*C)(k,imax+1) = (T)0;
         // RHS : BC east
         T dP_dXI = (*P)(imax+1,j  ,k  ) - (*P)(imax  ,j  ,k  ),
           dP_dET = (*P)(imax  ,j+1,k  ) - (*P)(imax  ,j-1,k  ) + 
@@ -370,16 +370,16 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
             (*P)(imax+1,j  ,k+1) - (*P)(imax+1,j  ,k-1);
         T coeff=(T)2*parameters->delta_time*(*grid->inverse_Jacobian)(imax,j,k);
 
-        (*F)(j,imax+1).x =(*grid-> XI_x)(imax,j,k) * dP_dXI + 
+        (*F)(k,imax+1).x =(*grid-> XI_x)(imax,j,k) * dP_dXI + 
           (T).125*((*grid->ET_x)(imax,j-1,k)+(*grid->ET_x)(imax,j,k)) * dP_dET +
           (T).125*((*grid->ZT_x)(imax,j,k-1)+(*grid->ZT_x)(imax,j,k)) * dP_dZT;
-        (*F)(j,imax+1).y = (*grid->XI_y)(imax,j,k) * dP_dXI + 
+        (*F)(k,imax+1).y = (*grid->XI_y)(imax,j,k) * dP_dXI + 
           (T).125*((*grid->ET_y)(imax,j-1,k)+(*grid->ET_y)(imax,j,k)) * dP_dET +
           (T).125*((*grid->ZT_y)(imax,j,k-1)+(*grid->ZT_y)(imax,j,k)) * dP_dZT;
-        (*F)(j,imax+1).z = (*grid->XI_z)(imax,j,k) * dP_dXI + 
+        (*F)(k,imax+1).z = (*grid->XI_z)(imax,j,k) * dP_dXI + 
           (T).125*((*grid->ET_z)(imax,j-1,k)+(*grid->ET_z)(imax,j,k)) * dP_dET +
           (T).125*((*grid->ZT_z)(imax,j,k-1)+(*grid->ZT_z)(imax,j,k)) * dP_dZT;
-        (*F)(j,imax+1) *= coeff;
+        (*F)(k,imax+1) *= coeff;
       }//east BC
 
     //solve tridiagonal system
@@ -387,10 +387,10 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
         parameters->periodic_in_x, mpi_driver->west_proc, mpi_driver->east_proc);
 
     //solution of linear system is in F
-    for(int j = jmin; j <= jmax; j++)
+    for(int k = kmin; k <= kmax; k++)
       for(int i = imin; i <= imax; i++)
-        RHS(i,j,k) = (*F)(j,i);
-  }//for: k
+        RHS(i,j,k) = (*F)(k,i);
+  }//for: j
   delete A; delete B; delete C; delete F;
 
   //--------------------------------------------------------------------------
