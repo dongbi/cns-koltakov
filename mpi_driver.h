@@ -1038,7 +1038,6 @@ void MPI_DRIVER<T>::Exchange_Ghost_Values_For_Scalar_Field(ARRAY_3D<T>& scalar,
           int j_index = -Halo_size + (h+1); // j=-1,0 (if halo=2)
           scalar(i,j_index,k) = recv_frnt_message[k-min_Z][i-min_X][h];
         }
-
   if(back_proc != MPI_PROC_NULL)
     for(int k=min_Z; k <= max_Z; k++)
       for(int i=min_X; i <= max_X; i++)

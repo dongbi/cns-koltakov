@@ -849,8 +849,8 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++) 
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
         switch(parameters->back_bc){
-          case FREE_SLIP: u(i,u.J_Max()-1,k) =   u(i,u.J_Max(),k); break;
-          case   NO_SLIP: u(i,u.J_Max()-1,k) = - u(i,u.J_Max(),k); break; 
+          case FREE_SLIP: u(i,u.J_Max()+1,k) =   u(i,u.J_Max(),k); break;
+          case   NO_SLIP: u(i,u.J_Max()+1,k) = - u(i,u.J_Max(),k); break; 
         }
         u(i,u.J_Max()+2,k) = (T)3 * (u(i,u.J_Max()+1,k) - u(i,u.J_Max(),k))
           +  u(i,u.J_Max()-1,k);
@@ -861,8 +861,8 @@ void NAVIER_STOKES_SOLVER<T>::Enforce_Velocity_BC(ARRAY_3D<VECTOR_3D<T> >& u)
     for(int i=u.I_Min_With_Halo(); i<=u.I_Max_With_Halo(); i++) 
       for(int k=u.K_Min_With_Halo(); k<=u.K_Max_With_Halo(); k++) {
         switch(parameters->frnt_bc){
-          case FREE_SLIP: u(i,u.J_Min()+1,k) =   u(i,u.J_Min(),k); break;
-          case   NO_SLIP: u(i,u.J_Min()+1,k) = - u(i,u.J_Min(),k); break; 
+          case FREE_SLIP: u(i,u.J_Min()-1,k) =   u(i,u.J_Min(),k); break;
+          case   NO_SLIP: u(i,u.J_Min()-1,k) = - u(i,u.J_Min(),k); break; 
         }
         u(i,u.J_Min()-2,k) = (T)3 * (u(i,u.J_Min()-1,k) - u(i,u.J_Min(),k))
           +  u(i,u.J_Min()+1,k);

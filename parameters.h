@@ -426,7 +426,7 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
 	                    const ARRAY_3D<VECTOR_3D<T> >& nodes)
 {
   if(depth) delete depth;
-  depth = new ARRAY_2D<T>(i_min, i_max, k_min, k_max, halo_size);
+  depth = new ARRAY_2D<T>(i_min, i_max, j_min, j_max, halo_size);
 
   T node_s = x_s/x_length; //node at beginning of slope
   T slope = rise/(run/x_length); //in x node coordinates
