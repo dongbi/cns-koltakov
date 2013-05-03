@@ -63,7 +63,7 @@ class POTENTIAL_ENERGY
     return E_background[array_size++];
   }
 
-  void Write_To_Disk();
+  int Write_To_Disk();
 
  private:
   T Background_Potential_Energy();
@@ -325,14 +325,46 @@ void POTENTIAL_ENERGY<T>::Send_Final_Local_Height(T final_cell_height)
 // Write to disk up to the current time step from Root
 //*****************************************************************************
 template<class T> 
-void POTENTIAL_ENERGY<T>::Write_To_Disk()
+int POTENTIAL_ENERGY<T>::Write_To_Disk()
 {
   if(!mpi_driver->my_rank){
+
+    stringstream filename;
+
+    //overwrite existing file
+    if(parameters->time_step==parameters->save_data_timestep_period){
+      filename << parameters->output_dir << "potential_energy.0";
+      ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
+      if(!output){
+        cout << "ERROR: could not open potential_energy file for writing" <<endl;
+        return 0;
+      }
+      output.write(reinterpret_cast<char *>(&E_background[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&E_potential[array_size-1]),sizeof(T));
+      output.close();
+    } 
+
+    //append at end of existing file
+    else{
+      filename << parameters->output_dir << "potential_energy.0";
+      ofstream output(filename.str().c_str(), ios::out | ios::app | ios::binary);
+      if(!output){
+        cout << "ERROR: could not open potential_energy file for writing" <<endl;
+        return 0;
+      }
+      output.write(reinterpret_cast<char *>(&E_background[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&E_potential[array_size-1]),sizeof(T));
+      output.close();
+    }
+    /*
     mpi_driver->Write_Local_Array_To_Disk("E_background", E_background, 
 					  array_size, parameters->time_step);
     mpi_driver->Write_Local_Array_To_Disk("E_potential", E_potential, 
 					  array_size, parameters->time_step);
+    */
   }
+
+  return 1;
 }
 //*****************************************************************************
 // Auxiliary function for qsort(): decreasing order

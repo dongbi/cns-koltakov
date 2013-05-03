@@ -90,6 +90,7 @@ void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
     if(parameters->potential_energy){
       T E_background = potential_energy->Calculate(); // executed by all
       if(!mpi_driver->my_rank) cout<<"E_background = "<<E_background<<endl;
+      potential_energy->Write_To_Disk();
     }
   }
 }

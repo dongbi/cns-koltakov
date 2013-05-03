@@ -185,7 +185,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   solitary_wave = false;
   scalar_advection = true;
   num_scalars = 2; //1: no scalar or rho only, 2: rho and passive scalar
-  potential_energy = false; //true; //based on scalar
+  potential_energy = true; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
   moving_grid = false; //true;

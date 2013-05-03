@@ -1072,27 +1072,30 @@ int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Data(string a_name,
 template<class T>
 int NAVIER_STOKES_SOLVER<T>::Save_Binary_Simulation_Parameters()
 {
-  stringstream filename;
- 
-  filename << parameters->output_dir << "parameters.0";
-  ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
-  if(!output){
-    cout<<"ERROR: could not open parameters file for writing"<<endl;
-    return 0;
-  }
+  if(!mpi_driver->my_rank){
+    stringstream filename;
 
-  output.write(reinterpret_cast<char *>(&parameters->num_total_nodes_x),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->num_total_nodes_y),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->num_total_nodes_z),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->num_cpu_x),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->num_cpu_y),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->num_cpu_z),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->max_timestep),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->save_data_timestep_period),sizeof(int));
-  output.write(reinterpret_cast<char *>(&parameters->delta_time),sizeof(T));
-  output.write(reinterpret_cast<char *>(&parameters->x_length),sizeof(T));
-  output.write(reinterpret_cast<char *>(&parameters->y_length),sizeof(T));
-  output.write(reinterpret_cast<char *>(&parameters->z_length),sizeof(T));
+    filename << parameters->output_dir << "parameters.0";
+    ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
+    if(!output){
+      cout<<"ERROR: could not open parameters file for writing"<<endl;
+      return 0;
+    }
+
+    output.write(reinterpret_cast<char *>(&parameters->num_total_nodes_x),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->num_total_nodes_y),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->num_total_nodes_z),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->num_cpu_x),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->num_cpu_y),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->num_cpu_z),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->max_timestep),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->save_data_timestep_period),sizeof(int));
+    output.write(reinterpret_cast<char *>(&parameters->delta_time),sizeof(T));
+    output.write(reinterpret_cast<char *>(&parameters->x_length),sizeof(T));
+    output.write(reinterpret_cast<char *>(&parameters->y_length),sizeof(T));
+    output.write(reinterpret_cast<char *>(&parameters->z_length),sizeof(T));
+    output.close();
+  }
   
   return 1;
 }
