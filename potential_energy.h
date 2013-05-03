@@ -76,6 +76,7 @@ class POTENTIAL_ENERGY
   void Split_Arrays_Based_On_Pivots();
   void Redistribute_Local_Arrays();
 
+  T Calculate_Planform_Area(T cell_height);
   T Receive_Initial_Local_Height();
   void Send_Final_Local_Height(T final_cell_height);
 
@@ -105,14 +106,15 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
  
-  T cell_height = Receive_Initial_Local_Height(), 
-    inv_domain_planform_width = (T)1 / parameters->x_length; // check on that!
+  T cell_height = Receive_Initial_Local_Height(); 
+  //inv_domain_planform_width = (T)1 / parameters->x_length; // check on that!
   //cout<<"Initial Height="<<cell_height<<" on CPU#"<<mpi_driver->my_rank<<endl;
   //cout<<"Sorted array size="<<local_sorted_array_size<<" out of "
   //    <<local_array_size <<" on CPU#"<<mpi_driver->my_rank<<endl;
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
-    T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
+    //T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
+    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area(cell_height);
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
     E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
@@ -131,6 +133,23 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
     if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
   }
   return E_b;
+}
+//*****************************************************************************
+// Calculate planform area of domain for E_b calculation
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
+{
+  T area = (T)0;
+
+  if(cell_height < parameters->z_min + (parameters->rise/parameters->run)*
+                                      (parameters->x_length - parameters->x_s))
+    area = (parameters->y_length)*
+           (parameters->x_s + (parameters->run/parameters->rise)*cell_height);
+  else
+    area = parameters->y_length * parameters->x_length;
+
+  return area;
 }
 //*****************************************************************************
 // Total Potential Energy

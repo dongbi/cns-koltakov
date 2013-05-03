@@ -1323,7 +1323,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC(T time)
     for(int j=parameters->j_min_w_h; j<=parameters->j_max_w_h; j++)
       for(int k=parameters->k_min_w_h; k<=parameters->k_max_w_h; k++) 
         (*parameters->west_velocity)(j,k).x = 
-             -parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).z)
+             parameters->forcing_amp*cos(parameters->m*(*grid)(grid->I_Min(),j,k).z)
                                     *sin(parameters->freq*time);
 } 
 //*****************************************************************************
