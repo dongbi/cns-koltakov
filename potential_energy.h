@@ -143,12 +143,12 @@ T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
   T area = (T)0;
 
   if(cell_height < parameters->z_min + (parameters->rise/parameters->run)*
-                                      (parameters->x_length - parameters->x_s))
-    area = (parameters->y_length)*
-           (parameters->x_s + (parameters->run/parameters->rise)*cell_height);
+                                      (parameters->x_length - parameters->x_s) - parameters->z_min)
+    area = (parameters->x_s + (parameters->run/parameters->rise)*cell_height);
   else
-    area = parameters->y_length * parameters->x_length;
+    area = parameters->x_length;
 
+  area *= parameters->y_length;
   return area;
 }
 //*****************************************************************************
@@ -302,7 +302,7 @@ void POTENTIAL_ENERGY<T>::Redistribute_Local_Arrays()
 template<class T> 
 T POTENTIAL_ENERGY<T>::Receive_Initial_Local_Height()
 { 
-  if(!mpi_driver->my_rank) return parameters->z_min;
+  if(!mpi_driver->my_rank) return 0.; //parameters->z_min;
   else{
     T height = (T)0; 
     MPI_Status status; 
