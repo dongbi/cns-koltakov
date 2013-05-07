@@ -117,7 +117,8 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
     T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area(cell_height);
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
-    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
+    E_b += (rho_sorted_cells[n].rho * parameters->rho0 + parameters->rho0) 
+           * rho_sorted_cells[n].volume * cell_height;
     //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
     //  cout.precision(15);
     //  cout<<"NOT SORTED:"<<n<<":"<< rho_sorted_cells[n].rho 
@@ -169,7 +170,7 @@ T POTENTIAL_ENERGY<T>::Total_Potential_Energy()
 	              + (*grid)(i-1,j+1,k+1).z + (*grid)(i+1,j+1,k+1).z;
 	cell_height /= (T)8;
 	cell_height -= parameters->z_min;
-	E_p += (*rho)(i,j,k) * cell_volume * cell_height;
+	E_p += ((*rho)(i,j,k) * parameters->rho0 + parameters->rho0) * cell_volume * cell_height;
   }
   E_p *= parameters->g;
   // sum over all procs
