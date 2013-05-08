@@ -11,9 +11,9 @@
  num_cpu_z  =  2                   // number of processors in Z coordinate
  num_cpu_y  =  2                   // number of processors in Y coordinate
  x_stretching_ratio = 0.           // push grid points toward the right
- z_stretching_ratio = 1.035        // push grid points toward the bottom
- delta_time = .005                 // delta time
- max_timestep = 14800.             // maximum timestep for the simulation
+ z_stretching_ratio = 0.           // push grid points toward the bottom
+ delta_time = .1                   // delta time
+ max_timestep = 1000               // maximum timestep for the simulation
  save_data_timestep_period = 1     // write on disk after each period
  print_timestep_period = 1         // display to console after each period
  restart_timestep    =  0          // restarts sim, if nontrivial value

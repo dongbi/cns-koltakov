@@ -234,7 +234,7 @@ template<class T> void PRESSURE<T>::Solve()
     // Check convergence
     T max_abs_error = fmax(fabs(residual_min), fabs(residual_max)),
       relative_resid = residual_l2 / (rhs_l2 < 1e-15 ? 1e-15 : rhs_l2);
-    if(mpi_driver->my_rank==0  && iter%1==0 &&
+    if(mpi_driver->my_rank==0  && iter%10==1 &&
         parameters->time_step % parameters->print_timestep_period==0) 
       cout<<"Iter = "<<iter
         <<", Rel_res = "<<relative_resid 
