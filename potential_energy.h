@@ -303,7 +303,7 @@ void POTENTIAL_ENERGY<T>::Redistribute_Local_Arrays()
 template<class T> 
 T POTENTIAL_ENERGY<T>::Receive_Initial_Local_Height()
 { 
-  if(!mpi_driver->my_rank) return 0.; //parameters->z_min;
+  if(!mpi_driver->my_rank) return (T)0.; //parameters->z_min;
   else{
     T height = (T)0; 
     MPI_Status status; 

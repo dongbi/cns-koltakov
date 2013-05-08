@@ -34,6 +34,7 @@ class NAVIER_STOKES_SOLVER
 
   T Background_Potential_Energy();
   T Calculate_CFL();
+  T Total_Kinetic_Energy();
 
   bool Increment_Time_Step_Counter();
   bool Check_CFL();
@@ -89,7 +90,11 @@ void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
     }
     if(parameters->potential_energy){
       T E_background = potential_energy->Calculate(); // executed by all
-      if(!mpi_driver->my_rank) cout<<"E_background = "<<E_background<<endl;
+      T E_kinetic = Total_Kinetic_Energy();
+      if(!mpi_driver->my_rank){
+        cout<<"E_background = "<<E_background<<endl;
+        cout<<"E_kinetic = "<<E_kinetic<<endl;
+      }
       potential_energy->Write_To_Disk();
     }
   }

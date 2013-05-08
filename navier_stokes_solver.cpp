@@ -1330,4 +1330,55 @@ void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC(T time)
                                     *sin(parameters->freq*time);
 } 
 //*****************************************************************************
+// Total Kinetic Energy
+//*****************************************************************************
+  template<class T> 
+T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
+{
+  T E_k = (T)0;
+  // calculate local E_k
+  for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
+    for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
+      for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
+        T cell_volume = (T)1 / (*grid->inverse_Jacobian)(i,j,k);
+        E_k += 0.5 * 
+               ( pow((*u)(i,j,k).x,2) + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ) 
+               * ( (*(*phi)(1))(i,j,k) * parameters->rho0 + parameters->rho0 ) 
+               * cell_volume;
+      }
+  // sum over all procs
+  mpi_driver->Replace_With_Sum_On_All_Procs(E_k);
+  
+  //write to disk
+  if(!mpi_driver->my_rank){
+
+    stringstream filename;
+
+    //overwrite existing file
+    if(parameters->time_step==parameters->save_data_timestep_period){
+      filename << parameters->output_dir << "kinetic_energy.0";
+      ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
+      if(!output){
+        cout << "ERROR: could not open potential_energy file for writing" <<endl;
+        return 0;
+      }
+      output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
+      output.close();
+    } 
+
+    //append at end of existing file
+    else{
+      filename << parameters->output_dir << "kinetic_energy.0";
+      ofstream output(filename.str().c_str(), ios::out | ios::app | ios::binary);
+      if(!output){
+        cout << "ERROR: could not open potential_energy file for writing" <<endl;
+        return 0;
+      }
+      output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
+      output.close();
+    }
+  }
+  return E_k;
+}
+//*****************************************************************************
 template class NAVIER_STOKES_SOLVER<double>;
