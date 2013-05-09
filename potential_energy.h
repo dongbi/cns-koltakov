@@ -130,6 +130,34 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   }
 
   return E_b;
+
+  /*
+  T E_b = (T)0;
+  Convert_ARRAY_3D_To_Linear_Array();
+  Sort_Global_Density_Array();
+
+  T cell_height = Receive_Initial_Local_Height(), 
+    inv_domain_planform_width = (T)1 / parameters->x_length; // check on that!
+  //cout<<"Initial Height="<<cell_height<<" on CPU#"<<mpi_driver->my_rank<<endl;
+  //cout<<"Sorted array size="<<local_sorted_array_size
+  //      <<" on CPU#"<<mpi_driver->my_rank<<endl;
+  // calculate local E_b
+  for(int n = 0; n < local_sorted_array_size; n++){
+    T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
+    if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
+    cell_height += local_height;
+    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
+  }
+  E_b *= parameters->g;
+  Send_Final_Local_Height(cell_height);
+  //cout<<"E_b="<<E_b<<" on CPU#"<<mpi_driver->my_rank<<endl;
+  // sum over all procs
+  if(p>1){
+    mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
+    if(rho_sorted_cells) delete[] rho_sorted_cells; //created in sorting func 
+  }
+  return E_b;
+  */
 }
 //*****************************************************************************
 // Calculate cell height for Eb calculation
@@ -179,7 +207,7 @@ T POTENTIAL_ENERGY<T>::Calculate_Cell_Centroid_Height(T local_height, T cell_bot
 //*****************************************************************************
 // Total Potential Energy
 //*****************************************************************************
-template<class T> 
+  template<class T> 
 T POTENTIAL_ENERGY<T>::Total_Potential_Energy()
 {
   T E_p = (T)0;
@@ -187,15 +215,15 @@ T POTENTIAL_ENERGY<T>::Total_Potential_Energy()
   for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
-	T cell_volume = (T)1 / (*grid->inverse_Jacobian)(i,j,k),
-	  cell_height = (*grid)(i-1,j-1,k-1).z + (*grid)(i+1,j-1,k-1).z
+        T cell_volume = (T)1 / (*grid->inverse_Jacobian)(i,j,k),
+          cell_height = (*grid)(i-1,j-1,k-1).z + (*grid)(i+1,j-1,k-1).z
                       + (*grid)(i-1,j+1,k-1).z + (*grid)(i+1,j+1,k-1).z
-	              + (*grid)(i-1,j-1,k+1).z + (*grid)(i+1,j-1,k+1).z
-	              + (*grid)(i-1,j+1,k+1).z + (*grid)(i+1,j+1,k+1).z;
-	cell_height /= (T)8;
-	cell_height -= parameters->z_min;
-	E_p += ((*rho)(i,j,k) * parameters->rho0 + parameters->rho0) * cell_volume * cell_height;
-  }
+                      + (*grid)(i-1,j-1,k+1).z + (*grid)(i+1,j-1,k+1).z
+                      + (*grid)(i-1,j+1,k+1).z + (*grid)(i+1,j+1,k+1).z;
+        cell_height /= (T)8;
+        cell_height -= parameters->z_min;
+        E_p += ((*rho)(i,j,k) * parameters->rho0 + parameters->rho0) * cell_volume * cell_height;
+      }
   E_p *= parameters->g;
   // sum over all procs
   if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(E_p);
