@@ -39,7 +39,7 @@ class PARAMETERS
     mg_tol_relative_resid, max_cfl, critical_cfl;
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
     omega, amp_p_grad, freq_p_grad, alpha, delta, ratio, rho0, a, Lw, 
-    upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, rise, run,
+    upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, slope,
     delta_perturb, lambda_perturb;
   std::string output_dir, grid_filename;
   int argc; 
@@ -77,8 +77,7 @@ class PARAMETERS
     cout << "d_p =" << delta_perturb << endl;
     cout << "l_p =" << lambda_perturb << endl;
     cout << "x_s =" << x_s << endl;
-    cout << "rise =" << rise << endl;
-    cout << "run =" << run << endl;
+    cout << "slope =" << slope << endl;
     cout << "two_d =" << two_d << endl;
     */
   }
@@ -165,8 +164,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("delta_perturb",delta_perturb)) delta_perturb = 0.;
   if(!parser->Get_Value("lambda_perturb",lambda_perturb)) lambda_perturb = 1.;
   if(!parser->Get_Value("x_s",x_s)) x_s = 1.;
-  if(!parser->Get_Value("rise",rise)) rise = .1;
-  if(!parser->Get_Value("run",run)) run = 1.;
+  if(!parser->Get_Value("slope",slope)) slope = .1;
   // output
   if(!parser->Get_Value("output_dir",output_dir)) output_dir = "./output/";
 }
@@ -233,8 +231,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   
   //bottom bathymetry
   x_s = 1.; //x position at beginning of slope
-  rise = .105; //.218; //slope rise
-  run = 1.; //slope run
+  slope = .105; //.218; 
   */
 
   // multigrid
@@ -428,15 +425,16 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   if(depth) delete depth;
   depth = new ARRAY_2D<T>(i_min, i_max, j_min, j_max, halo_size);
 
-  T node_s = x_s/x_length; //node at beginning of slope
-  T slope = rise/(run/x_length); //in x node coordinates
+  T node_x_s = x_s/x_length; //node at beginning of slope
+  //T node_slope = rise/(run/x_length); //in x node coordinates
+  T node_slope = slope*x_length; //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {
     for (int j=j_min_w_h; j<=j_max_w_h; j++) {
-      if (nodes(i,j,k_min).x < node_s)
+      if (nodes(i,j,k_min).x < node_x_s)
         (*depth)(i,j) = z_length; 
       else
-        (*depth)(i,j) = (z_length + slope*node_s) - slope*nodes(i,j,k_min).x;
+        (*depth)(i,j) = (z_length + node_slope*node_x_s) - node_slope*nodes(i,j,k_min).x;
     }
   }
 }

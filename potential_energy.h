@@ -76,7 +76,10 @@ class POTENTIAL_ENERGY
   void Split_Arrays_Based_On_Pivots();
   void Redistribute_Local_Arrays();
 
-  T Calculate_Planform_Area(T cell_height);
+  T Calculate_Cell_Height(T cell_volume, T cell_bottom_height,
+    T slope, T x_slope, T x_length, T y_length);
+  T Calculate_Cell_Centroid_Height(T local_height, T cell_bottom_height,
+    T slope, T x_slope, T x_length, T y_length);
   T Receive_Initial_Local_Height();
   void Send_Final_Local_Height(T final_cell_height);
 
@@ -105,52 +108,73 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   T E_b = (T)0;
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
- 
   T cell_height = Receive_Initial_Local_Height(); 
-  //inv_domain_planform_width = (T)1 / parameters->x_length; // check on that!
-  //cout<<"Initial Height="<<cell_height<<" on CPU#"<<mpi_driver->my_rank<<endl;
-  //cout<<"Sorted array size="<<local_sorted_array_size<<" out of "
-  //    <<local_array_size <<" on CPU#"<<mpi_driver->my_rank<<endl;
+  
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
-    //T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
-    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area(cell_height);
-    if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
-    cell_height += local_height;
+    T local_height = Calculate_Cell_Height(rho_sorted_cells[n].volume, cell_height,
+      parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
+    T centroid_height = Calculate_Cell_Centroid_Height(local_height, cell_height,
+      parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
     E_b += (rho_sorted_cells[n].rho * parameters->rho0 + parameters->rho0) 
-           * rho_sorted_cells[n].volume * cell_height;
-    //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
-    //  cout.precision(15);
-    //  cout<<"NOT SORTED:"<<n<<":"<< rho_sorted_cells[n].rho 
-    //      <<" > "<<rho_sorted_cells[n-1].rho<<endl;
-    //}
-  }
+         * rho_sorted_cells[n].volume * centroid_height;
+    cell_height += local_height;
+    }
   E_b *= parameters->g;
   Send_Final_Local_Height(cell_height);
-  //cout<<"E_b="<<E_b<<" on CPU#"<<mpi_driver->my_rank<<endl;
+
   // sum over all procs
   if(p>1) {
     mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
     if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
   }
+
   return E_b;
 }
 //*****************************************************************************
-// Calculate planform area of domain for E_b calculation
+// Calculate cell height for Eb calculation
 //*****************************************************************************
 template<class T> 
-T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
+T POTENTIAL_ENERGY<T>::Calculate_Cell_Height(T cell_volume, T cell_bottom_height,
+    T slope, T x_slope, T x_length, T y_length)
 {
-  T area = (T)0;
+  T local_height, A_bottom, extra_volume, extra_height;
 
-  if(cell_height < (parameters->rise/parameters->run)
-                   * (parameters->x_length - parameters->x_s) )
-    area = (parameters->x_s + (parameters->run/parameters->rise)*cell_height);
+  if(cell_bottom_height < (slope * (x_length - x_slope))){
+    A_bottom = y_length * (x_slope + (1/slope)*cell_bottom_height);
+    local_height = (slope/y_length) 
+                 * (-A_bottom + sqrt(pow(A_bottom,2) + 2*cell_volume*y_length/slope));
+    if((cell_bottom_height + local_height) > (slope * (x_length - x_slope))){
+      extra_height = (cell_bottom_height + local_height) 
+                   - (slope * (x_length - x_slope));
+      extra_volume = 0.5*y_length*pow(extra_height,2)/slope;
+      local_height += extra_volume / (y_length * x_length);
+    }
+  }
   else
-    area = parameters->x_length;
+    local_height = cell_volume / (y_length * x_length); 
 
-  area *= parameters->y_length;
-  return area;
+  return local_height;
+}
+//*****************************************************************************
+// Calculate cell centroid height for Eb calculation
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Calculate_Cell_Centroid_Height(T local_height, T cell_bottom_height,
+    T slope, T x_slope, T x_length, T y_length)
+{
+  T centroid_height, a, b;
+
+  if(cell_bottom_height < (slope * (x_length - x_slope))){
+    a = x_slope + (1/slope)*cell_bottom_height;
+    b = x_slope + (1/slope)*(cell_bottom_height + local_height);
+    centroid_height = (local_height/3)*((2*a+b)/(a+b));
+  }
+  else
+    centroid_height = 0.5*local_height;
+
+  centroid_height += cell_bottom_height;
+  return centroid_height;
 }
 //*****************************************************************************
 // Total Potential Energy
