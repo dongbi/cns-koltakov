@@ -95,7 +95,8 @@ void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
         cout<<"E_background = "<<E_background<<endl;
         cout<<"E_kinetic = "<<E_kinetic<<endl;
       }
-      potential_energy->Write_To_Disk();
+      if(parameters->time_step % parameters->save_data_timestep_period == 0)
+        potential_energy->Write_To_Disk();
     }
   }
 }
