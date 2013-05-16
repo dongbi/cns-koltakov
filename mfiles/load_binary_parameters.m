@@ -1,5 +1,5 @@
 %==========================================================================
-% Loads grid nodes from binary output
+% Loads parameters nodes from binary output
 %==========================================================================
 function [Nx, Ny, Nz, npx, npy, npz, Nt, period, ...
     dt, x_length, y_length, z_length] = load_binary_parameters(directory)

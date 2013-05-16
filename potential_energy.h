@@ -76,7 +76,7 @@ class POTENTIAL_ENERGY
   void Split_Arrays_Based_On_Pivots();
   void Redistribute_Local_Arrays();
 
-  T Calculate_Planform_Area(T cell_height)
+  T Calculate_Planform_Area(T cell_height);
   T Calculate_Cell_Height(T cell_volume, T cell_bottom_height,
     T slope, T x_slope, T x_length, T y_length);
   T Calculate_Cell_Centroid_Height(T local_height, T cell_bottom_height,
@@ -106,6 +106,7 @@ class POTENTIAL_ENERGY
 template<class T> 
 T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
 {
+  /*
   T E_b = (T)0;
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
@@ -138,8 +139,8 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
     if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
   }
   return E_b;
+  */
 
-  /*
   //BOBBY CHANGES
   T E_b = (T)0;
   Convert_ARRAY_3D_To_Linear_Array(); 
@@ -166,7 +167,6 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   }
 
   return E_b;
-  */
 }
 //*****************************************************************************
 // Calculate planform area of domain for E_b calculation
@@ -176,9 +176,8 @@ T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
 {
   T area = (T)0;
 
-  if(cell_height < (parameters->rise/parameters->run)
-                   * (parameters->x_length - parameters->x_s) )
-    area = (parameters->x_s + (parameters->run/parameters->rise)*cell_height);
+  if(cell_height < (parameters->slope * (parameters->x_length - parameters->x_s)))
+    area = (parameters->x_s + (1/parameters->slope)*cell_height);
   else
     area = parameters->x_length;
 

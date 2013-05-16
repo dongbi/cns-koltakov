@@ -1,30 +1,35 @@
 % Displays CNS simulation data from binary output files
 clear all; clc; close all;
-% directory = '/home/barthur/zang/3D_test/';
-% directory = '/home/barthur/zang/2D_test/';
-directory = '/home/barthur/zang/christine_12deg_2/';
+
+% directory = '/usr/var/tmp/barthur/1101642/output/';
+% directory = '/usr/var/tmp/barthur/1102291/output/';
+directory = '/home/barthur/zang/2D_test/';
 
 % PLOTTING OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-timestep = 12700; %timestep to plot
+timestep = 100; %timestep to plot
 delta_ts = 0; %averaging
+FIGURE_ON = 1; %figure visible?
+    print_ext = '-dpng'; %image file type
+    print_res = '-r200'; %image resolution
 
 display_grid = 0;
-display_density = 0;
+display_density = 1;
 display_velocity = 0;
 display_scalar = 0;
 display_pressure = 0;
-display_density_isosurface = 1;
-    rho_iso = -.005;
-    
-x_loc = 1.85; %if 0, west boundary
+display_density_isosurface = 0;
+    rho_iso = 0;
+display_omega_1_isosurface = 0;
+    omega_1_iso = 1.25;
+
+x_loc = 2.075; %if 0, west boundary
 y_loc = 0; %if 0, centerline
 
 plot_xz = 1; %x-z plot
-plot_yz = 1; %y-z plot
+plot_yz = 0; %y-z plot
 
-plot_pcolor = 1;
 plot_quiver = 0;
-show_grid_lines = 0; %false = shading flat
+show_grid_lines = 1; %false = shading flat
 
 % OTHER PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 [Nx, Ny, Nz, npx, npy, npz, Nt, save_timestep_period, ...
@@ -76,23 +81,35 @@ end
 
 if(display_grid)  
     if(plot_xz)
-        figure;
+        grid_fig_xz = figure;
+        hold all;
+        if(~FIGURE_ON)
+            set(grid_fig_xz,'visible','off');
+        end
         plot(x_xz(:,:), z_xz(:,:), 'k.');     
         axis equal;
         axis([0 x_length -z_length 0]);
         xlabel('x [m]');
         ylabel('z [m]');
         title('Computational grid, x-z slice');
+        %print(grid_fig_xz,print_ext,print_res,'grid_xz');
+        saveas(grid_fig_xz,'grid_xz.fig');
     end
     
     if(plot_yz)
-        figure;
+        grid_fig_yz = figure;
+        hold all;
+        if(~FIGURE_ON)
+            set(grid_fig_yz,'visible','off');
+        end
         plot(y_yz(:,:), z_yz(:,:), 'k.');         
         axis equal;
         axis([0 y_length -z_length 0]);
         xlabel('y [m]');
         ylabel('z [m]');
         title('Computational grid, y-z slice');
+        %print(grid_fig_yz,print_ext,print_res,'grid_yz');
+        saveas(grid_fig_yz,'grid_yz.fig');
     end
 end
 
@@ -103,7 +120,11 @@ if(display_density)
    
    if(plot_xz)
        rho_xz = squeeze(rho(:,y_slice,:));
-       figure;
+       rho_fig_xz = figure;
+       hold all;
+       if(~FIGURE_ON)
+           set(rho_fig_xz,'visible','off');
+       end
        pcolor(x_xz,z_xz,rho_xz);
        colorbar;
        axis equal;
@@ -119,21 +140,29 @@ if(display_density)
            plot([x_loc x_loc],[z(x_slice,1,1) z(x_slice,1,end)],'k-','LineWidth',2);
            hold off;
        end
+       %print(rho_fig_xz,print_ext,print_res,'density_xz');
+       saveas(rho_fig_xz,'density_xz.png');
    end
-   
+
    if(plot_yz)
        rho_yz = squeeze(rho(x_slice,:,:));
-       figure;
+       rho_fig_yz = figure;
+       hold all;
+       if(~FIGURE_ON)
+           set(rho_fig_yz,'visible','off');
+       end
        pcolor(y_yz,z_yz,rho_yz);
        colorbar;
-       axis equal;
-       axis([0 y_length -z_length 0]);
+       axis image;
+%        axis([0 y_length -z_length 0]);
        xlabel('y [m]');
        ylabel('z [m]');
        title('Density \Delta\rho/\rho_0, y-z slice');
        if(~show_grid_lines)
            shading flat;
        end
+       %print(rho_fig_yz,print_ext,print_res,'density_yz');
+       saveas(rho_fig_yz,'density_yz.fig');
    end
 end
 
@@ -146,10 +175,16 @@ if(display_velocity)
         u_xz = squeeze(u(:,y_slice,:));
         v_xz = squeeze(v(:,y_slice,:));
         w_xz = squeeze(w(:,y_slice,:));
-        figure;
+        velocity_fig_xz = figure;
+        hold all;
+        if(~FIGURE_ON)
+           set(velocity_fig_xz,'visible','off');
+        end
         pcolor(x_xz,z_xz,u_xz);
         colorbar;
-%         quiver(x_xz,z_xz,u_xz,w_xz);
+        if(plot_quiver)
+            quiver(x_xz,z_xz,u_xz,w_xz);
+        end
         axis equal;
         axis([0 x_length -z_length 0]);
         xlabel('x [m]');
@@ -158,15 +193,24 @@ if(display_velocity)
         if(~show_grid_lines)
             shading flat;
         end
+        %print(velocity_fig_xz,print_ext,print_res,'velocity_xz');
+        saveas(velocity_fig_xz,'velocity_xz.fig');
     end
     
     if(plot_yz)
         u_yz = squeeze(u(x_slice,:,:));
         v_yz = squeeze(v(x_slice,:,:));
         w_yz = squeeze(w(x_slice,:,:));
-        figure;
+        velocity_fig_yz = figure;
+        hold all;
+        if(~FIGURE_ON)
+            set(velocity_fig_yz,'visible','off');
+        end
         pcolor(y_yz,z_yz,u_yz);
         colorbar;
+        if(plot_quiver)
+            quiver(y_yz,z_yz,v_yz,w_yz);
+        end
         axis equal;
         axis([0 y_length -z_length 0]);
         xlabel('y [m]');
@@ -175,6 +219,8 @@ if(display_velocity)
         if(~show_grid_lines)
             shading flat;
         end
+        %print(velocity_fig_yz,print_ext,print_res,'velocity_yz');
+        saveas(velocity_fig_yz,'velocity_yz.fig');
     end  
 end
 
@@ -185,10 +231,17 @@ if(display_scalar)
 
    if(plot_xz)
        phi_xz = squeeze(phi(:,y_slice,:));
-       figure;
+       phi_fig_xz = figure;
+       hold all;
+       if(~FIGURE_ON)
+          set(phi_fig_xz,'visible','off');
+       end
        pcolor(x_xz,z_xz,phi_xz);
        colorbar;
        caxis([0 1]);
+       if(plot_quiver)
+           quiver(x_xz,z_xz,u_xz,w_xz);
+       end
        axis equal;
        axis([0 x_length -z_length 0]);
        xlabel('x [m]');
@@ -197,14 +250,23 @@ if(display_scalar)
        if(~show_grid_lines)
            shading flat;
        end
+       %print(phi_fig_xz,print_ext,print_res,'scalar_xz');
+       saveas(phi_fig_xz,'scalar_xz.fig');
    end
    
    if(plot_yz)
        phi_yz = squeeze(phi(x_slice,:,:));
-       figure;
+       phi_fig_yz = figure;
+       hold all;
+       if(~FIGURE_ON)
+          set(phi_fig_yz,'visible','off');
+       end
        pcolor(y_yz,z_yz,phi_yz);
        colorbar;
        caxis([0 1]);
+       if(plot_quiver)
+           quiver(y_yz,z_yz,v_yz,w_yz);
+       end
        axis equal;
        axis([0 y_length -z_length 0]);
        xlabel('y [m]');
@@ -213,17 +275,23 @@ if(display_scalar)
        if(~show_grid_lines)
            shading flat;
        end
+       %print(phi_fig_yz,print_ext,print_res,'scalar_yz');
+       saveas(phi_fig_yz,'scalar_yz.fig');
    end
 end
 
 % PRESSURE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if(display_pressure)    
-    [P] = load_binary_pressure(directory, timestep,delta_ts, npx,npy,npz, l_ni_h1,l_nj_h1,l_nk_h1);
+    [p] = load_binary_pressure(directory, timestep,delta_ts, npx,npy,npz, l_ni_h1,l_nj_h1,l_nk_h1);
 
     if(plot_xz)
-       P_xz = squeeze(P(:,y_slice,:));
-       figure;
-       pcolor(x_xz,z_xz,P_xz);
+       p_xz = squeeze(p(:,y_slice,:));
+       p_fig_xz = figure;
+       hold all;
+       if(~FIGURE_ON);
+           set(p_fig_xz,'visible','off');
+       end
+       pcolor(x_xz,z_xz,p_xz);
        colorbar;
        axis equal;
        axis([0 x_length -z_length 0]);
@@ -233,12 +301,18 @@ if(display_pressure)
        if(~show_grid_lines)
            shading flat;
        end
+       %print(p_fig_xz,print_ext,print_res,'pressure_xz');
+       saveas(p_fig_xz,'pressure_xz.fig');
    end
    
    if(plot_yz)
-       phi_yz = squeeze(P(x_slice,:,:));
-       figure;
-       pcolor(y_yz,z_yz,P_yz);
+       phi_yz = squeeze(p(x_slice,:,:));
+       p_fig_yz = figure;
+       hold all;
+       if(~FIGURE_ON);
+           set(p_fig_yz,'visible','off');
+       end
+       pcolor(y_yz,z_yz,p_yz);
        colorbar;
        axis equal;
        axis([0 y_length -z_length 0]);
@@ -248,6 +322,8 @@ if(display_pressure)
        if(~show_grid_lines)
            shading flat;
        end
+       %print(p_fig_yz,print_ext,print_res,'pressure_yz');
+       saveas(p_fig_yz,'pressure_yz.fig');
    end
 end
 
@@ -260,11 +336,34 @@ if(display_density_isosurface)
     [rho] = load_binary_density(directory,timestep,...
            delta_ts/save_timestep_period,npx,npy,npz,l_ni_h2,l_nj_h2,l_nk_h2);
 
-    figure;
+    isoplot = figure;
+    hold all;
+    if(~FIGURE_ON)
+        set(isoplot,'visible','off');
+    end
     surf(xz,yz,-depth-.005,'FaceColor','k','EdgeColor','none'); 
-    hold on;
-    pat = patch(isosurface(x,y,z,rho,0,rho));
+    pat = patch(isosurface(x,y,z,rho,rho_iso,rho));
     set(pat,'FaceColor','interp','EdgeColor','none');
+    set(pat,'FaceColor','r');
+    
+    if(display_omega_1_isosurface)
+        [u,v,w] = load_binary_velocity(directory,timestep,...
+           delta_ts/save_timestep_period, npx,npy,npz,l_ni_h2,l_nj_h2,l_nk_h2);
+        omega_1 = calculate_binary_vorticity(x,y,z,v,w);
+        pat_pos = patch(isosurface( ...
+                     x(2:end-1,2:end-1,2:end-1), ...
+                     y(2:end-1,2:end-1,2:end-1), ...
+                     z(2:end-1,2:end-1,2:end-1), ...
+                     omega_1,omega_1_iso,omega_1) );
+        set(pat_pos,'FaceColor','b','EdgeColor','none');
+        pat_neg = patch(isosurface( ...
+                     x(2:end-1,2:end-1,2:end-1), ...
+                     y(2:end-1,2:end-1,2:end-1), ...
+                     z(2:end-1,2:end-1,2:end-1), ...
+                     omega_1,-omega_1_iso,omega_1) );
+        set(pat_neg,'FaceColor','g','EdgeColor','none');
+    end
+    
     daspect([1,1,1])
     view([0.04, -0.04, 0.04]); axis tight
     camlight 
@@ -273,7 +372,9 @@ if(display_density_isosurface)
     ylabel('y [m]');
     zlabel('z [m]');
     title(['Isosurface of \Delta\rho/\rho_0=',num2str(rho_iso)]);
+    %print(isoplot,print_ext,print_res,'isoplot_3D');
+    saveas(isoplot,'isoplot_3D.fig');
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-set(gcf, 'PaperPositionMode', 'auto');  
+display('Complete');

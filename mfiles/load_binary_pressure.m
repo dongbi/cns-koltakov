@@ -16,7 +16,7 @@ function [P] = load_binary_pressure(directory, ts_start,delta_ts, npx,npy,npz, l
         for pj = 1:npy
             for pi = 1:npx 
                 proc = (pi-1)*npz*npy + (pj-1)*npz + pk-1;
-                str = sprintf('Proc = %d',proc);  disp(str); 
+%                 str = sprintf('Proc = %d',proc);  disp(str); 
                 fid = fopen([filename num2str(proc)],'r');
                 
                 p3_loc = zeros(l_ni_h1,l_nj_h1,l_nk_h1);                     

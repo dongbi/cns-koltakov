@@ -16,7 +16,7 @@ function [U, V, W] = load_binary_velocity(directory, ts_start,delta_ts, npx,npy,
         for pj = 1:npy
             for pi = 1:npx 
                 proc = (pi-1)*npz*npy + (pj-1)*npz + pk-1;
-                str = sprintf('Proc = %d',proc);  disp(str); 
+%                 str = sprintf('Proc = %d',proc);  disp(str); 
                 fid = fopen([filename num2str(proc)],'r');
                 
                 u = zeros(l_ni_h2,l_nj_h2,l_nk_h2); v = u; w = u;                     
