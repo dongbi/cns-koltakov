@@ -153,8 +153,7 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
       parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
     T centroid_height = Calculate_Cell_Centroid_Height(local_height, cell_height,
       parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
-    E_b += (rho_sorted_cells[n].rho * parameters->rho0 + parameters->rho0) 
-         * rho_sorted_cells[n].volume * centroid_height;
+    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * centroid_height;
     cell_height += local_height;
     }
   E_b *= parameters->g;
@@ -247,7 +246,7 @@ T POTENTIAL_ENERGY<T>::Total_Potential_Energy()
                       + (*grid)(i-1,j+1,k+1).z + (*grid)(i+1,j+1,k+1).z;
         cell_height /= (T)8;
         cell_height -= parameters->z_min;
-        E_p += ((*rho)(i,j,k) * parameters->rho0 + parameters->rho0) * cell_volume * cell_height;
+        E_p += (*rho)(i,j,k) * cell_volume * cell_height;
       }
   E_p *= parameters->g;
   // sum over all procs

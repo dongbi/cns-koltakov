@@ -1260,7 +1260,7 @@ if(parameters->scalar_advection) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
           zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2))
                   + delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
-          (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
+          (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
                 parameters->z_length/interface_loc)/delta*atanh(alpha));          
         }
       }
@@ -1273,7 +1273,7 @@ if(parameters->scalar_advection) {
       for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
         for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
           zeta = delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
-          (*(*phi)(1))(i,j,k) = -.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
+          (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
                 parameters->z_length/interface_loc)/delta*atanh(alpha));           
         }
       }
@@ -1341,10 +1341,8 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
         T cell_volume = (T)1 / (*grid->inverse_Jacobian)(i,j,k);
-        E_k += 0.5 * 
-               ( pow((*u)(i,j,k).x,2) + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ) 
-               * ( (*(*phi)(1))(i,j,k) * parameters->rho0 + parameters->rho0 ) 
-               * cell_volume;
+        E_k += 0.5 * cell_volume * 
+               ( pow((*u)(i,j,k).x,2) + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ); 
       }
   // sum over all procs
   mpi_driver->Replace_With_Sum_On_All_Procs(E_k);
