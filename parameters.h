@@ -164,7 +164,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("delta_perturb",delta_perturb)) delta_perturb = 0.;
   if(!parser->Get_Value("lambda_perturb",lambda_perturb)) lambda_perturb = 1.;
   if(!parser->Get_Value("x_s",x_s)) x_s = 1.;
-  if(!parser->Get_Value("slope",slope)) slope = .1;
+  if(!parser->Get_Value("slope",slope)) slope = .218;
   // output
   if(!parser->Get_Value("output_dir",output_dir)) output_dir = "./output/";
 }
