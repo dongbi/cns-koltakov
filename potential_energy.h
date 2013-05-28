@@ -7,7 +7,7 @@
 template<class T=double>
 struct CELL
 {
-  T rho, volume;
+  T rho, volume, centroid_height, local_height;
 };
 
 template<class T=double>
@@ -20,6 +20,8 @@ class POTENTIAL_ENERGY
   {
     E_background = new T[parameters->max_timestep]; 
     E_potential = new T[parameters->max_timestep]; 
+    F_background = new T[parameters->max_timestep]; 
+    F_potential = new T[parameters->max_timestep]; 
     array_size = 0;
     local_sorted_array_size = 0;
     rho_sorted_cells = NULL;
@@ -49,6 +51,7 @@ class POTENTIAL_ENERGY
   ~POTENTIAL_ENERGY() 
   {
     delete[] E_background; delete[] E_potential;
+    delete[] F_background; delete[] F_potential;
     delete[] rho_local_cells; delete[] rho_local_samples;
     if(!mpi_driver->my_rank) delete[] rho_global_samples;
     delete[] pivots;
@@ -60,6 +63,10 @@ class POTENTIAL_ENERGY
   T Calculate(){
     E_background[array_size] = Background_Potential_Energy();
     E_potential[array_size] = Total_Potential_Energy();
+    if(parameters->west_velocity){
+      F_background[array_size] = Background_Potential_Energy_Flux();
+      F_potential[array_size] = Potential_Energy_Flux();
+    }
     return E_background[array_size++];
   }
 
@@ -67,7 +74,9 @@ class POTENTIAL_ENERGY
 
  private:
   T Background_Potential_Energy();
+  T Background_Potential_Energy_Flux();
   T Total_Potential_Energy();
+  T Potential_Energy_Flux();
 
   void Convert_ARRAY_3D_To_Linear_Array();
   void Sort_Global_Density_Array();
@@ -97,7 +106,7 @@ class POTENTIAL_ENERGY
   int *sorted_array_part_sizes_send, *sorted_array_part_sizes_recv,
       *send_displacements, *recv_displacements;
   int array_size;
-  T *E_background, *E_potential;
+  T *E_background, *E_potential, *F_background, *F_potential;
   MPI_Datatype cell_type;
 };
 //*****************************************************************************
@@ -149,12 +158,14 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
-    T local_height = Calculate_Cell_Height(rho_sorted_cells[n].volume, cell_height,
-      parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
-    T centroid_height = Calculate_Cell_Centroid_Height(local_height, cell_height,
-      parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
-    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * centroid_height;
-    cell_height += local_height;
+    rho_sorted_cells[n].local_height = Calculate_Cell_Height(rho_sorted_cells[n].volume, 
+      cell_height,parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
+    rho_sorted_cells[n].centroid_height = Calculate_Cell_Centroid_Height(
+      rho_sorted_cells[n].local_height, cell_height,parameters->slope,parameters->x_s,
+      parameters->x_length,parameters->y_length);
+    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume 
+         * rho_sorted_cells[n].centroid_height;
+    cell_height += rho_sorted_cells[n].local_height;
     }
   E_b *= parameters->g;
   Send_Final_Local_Height(cell_height);
@@ -162,10 +173,36 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   // sum over all procs
   if(p>1) {
     mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
-    if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
+    //if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
   }
 
   return E_b;
+}
+//*****************************************************************************
+// Background Potential Energy Flux at West Boundary
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Background_Potential_Energy_Flux()
+{
+  T F_Eb = (T)0;
+  
+  // calculate F_Eb
+  for(int n = 0; n < local_sorted_array_size; n++)
+    F_Eb += rho_sorted_cells[n].rho * parameters->g 
+          * rho_sorted_cells[n].centroid_height 
+          * (rho_sorted_cells[n].local_height*parameters->y_length)
+          * parameters->forcing_amp*cos(parameters->m
+                                       *(rho_sorted_cells[n].centroid_height-parameters->z_length))
+                                   *sin(parameters->freq*parameters->time);
+  F_Eb *= parameters->g;
+
+  // sum over all procs
+  if(p>1) {
+    mpi_driver->Replace_With_Sum_On_All_Procs(F_Eb);
+    if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
+  }
+
+  return F_Eb;
 }
 //*****************************************************************************
 // Calculate planform area of domain for E_b calculation
@@ -252,6 +289,34 @@ T POTENTIAL_ENERGY<T>::Total_Potential_Energy()
   // sum over all procs
   if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(E_p);
   return E_p;
+}
+//*****************************************************************************
+// Potential Energy Flux at West Boundary
+//*****************************************************************************
+  template<class T> 
+T POTENTIAL_ENERGY<T>::Potential_Energy_Flux()
+{
+  T F_Ep = (T)0;
+  // calculate local F_Ep
+  if(mpi_driver->west_proc == NULL)
+    for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
+      for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
+        int i = grid->I_Min();
+          T cell_area = ((T)1 / (*grid->inverse_Jacobian)(i,j,k)) 
+                      / (parameters->x_length/parameters->num_total_nodes_x),
+            cell_height = (*grid)(i-1,j-1,k-1).z + (*grid)(i+1,j-1,k-1).z
+                      + (*grid)(i-1,j+1,k-1).z + (*grid)(i+1,j+1,k-1).z
+                      + (*grid)(i-1,j-1,k+1).z + (*grid)(i+1,j-1,k+1).z
+                      + (*grid)(i-1,j+1,k+1).z + (*grid)(i+1,j+1,k+1).z;
+          cell_height /= (T)8;
+          cell_height -= parameters->z_min;
+          F_Ep += (*rho)(i,j,k) * cell_height * cell_area 
+                *(*parameters->west_velocity)(j,k).x;
+      }
+  F_Ep *= parameters->g;
+  // sum over all procs
+  if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(F_Ep);
+  return F_Ep;
 }
 //*****************************************************************************
 // convert ARRAY_3D to CELL*
@@ -418,6 +483,8 @@ int POTENTIAL_ENERGY<T>::Write_To_Disk()
       }
       output.write(reinterpret_cast<char *>(&E_background[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&E_potential[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&F_background[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&F_potential[array_size-1]),sizeof(T));
       output.close();
     } 
 
@@ -431,6 +498,8 @@ int POTENTIAL_ENERGY<T>::Write_To_Disk()
       }
       output.write(reinterpret_cast<char *>(&E_background[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&E_potential[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&F_background[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&F_potential[array_size-1]),sizeof(T));
       output.close();
     }
     /*
