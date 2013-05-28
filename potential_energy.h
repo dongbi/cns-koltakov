@@ -7,7 +7,7 @@
 template<class T=double>
 struct CELL
 {
-  T rho, volume, centroid_height, local_height;
+  T rho, volume;
 };
 
 template<class T=double>
@@ -107,6 +107,7 @@ class POTENTIAL_ENERGY
       *send_displacements, *recv_displacements;
   int array_size;
   T *E_background, *E_potential, *F_background, *F_potential;
+  T *sorted_centroid_height, *sorted_local_height;
   MPI_Datatype cell_type;
 };
 //*****************************************************************************
@@ -152,20 +153,23 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
 
   //BOBBY CHANGES
   T E_b = (T)0;
+  T local_height, centroid_height;
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
   T cell_height = Receive_Initial_Local_Height(); 
   
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
-    rho_sorted_cells[n].local_height = Calculate_Cell_Height(rho_sorted_cells[n].volume, 
+    local_height = Calculate_Cell_Height(rho_sorted_cells[n].volume, 
       cell_height,parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
-    rho_sorted_cells[n].centroid_height = Calculate_Cell_Centroid_Height(
-      rho_sorted_cells[n].local_height, cell_height,parameters->slope,parameters->x_s,
+    sorted_local_height[n] = local_height;
+    centroid_height = Calculate_Cell_Centroid_Height(
+      local_height,cell_height,parameters->slope,parameters->x_s,
       parameters->x_length,parameters->y_length);
+    sorted_centroid_height[n] = centroid_height;
     E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume 
-         * rho_sorted_cells[n].centroid_height;
-    cell_height += rho_sorted_cells[n].local_height;
+         * centroid_height;
+    cell_height += local_height;
     }
   E_b *= parameters->g;
   Send_Final_Local_Height(cell_height);
@@ -187,19 +191,24 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy_Flux()
   T F_Eb = (T)0;
   
   // calculate F_Eb
-  for(int n = 0; n < local_sorted_array_size; n++)
-    F_Eb += rho_sorted_cells[n].rho * parameters->g 
-          * rho_sorted_cells[n].centroid_height 
-          * (rho_sorted_cells[n].local_height*parameters->y_length)
+  for(int n = 0; n < local_sorted_array_size; n++){
+    F_Eb += rho_sorted_cells[n].rho  
+          * sorted_centroid_height[n] 
+          * (sorted_local_height[n]*parameters->y_length)
           * parameters->forcing_amp*cos(parameters->m
-                                       *(rho_sorted_cells[n].centroid_height-parameters->z_length))
+                                       *(sorted_centroid_height[n]))
                                    *sin(parameters->freq*parameters->time);
+  }
   F_Eb *= parameters->g;
 
   // sum over all procs
   if(p>1) {
     mpi_driver->Replace_With_Sum_On_All_Procs(F_Eb);
-    if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
+    if(rho_sorted_cells){ 
+      delete[] rho_sorted_cells; //created in Sorting func
+      delete[] sorted_centroid_height;
+      delete[] sorted_local_height;
+    }
   }
 
   return F_Eb;
@@ -311,7 +320,7 @@ T POTENTIAL_ENERGY<T>::Potential_Energy_Flux()
           cell_height /= (T)8;
           cell_height -= parameters->z_min;
           F_Ep += (*rho)(i,j,k) * cell_height * cell_area 
-                *(*parameters->west_velocity)(j,k).x;
+                * (*parameters->west_velocity)(j,k).x;
       }
   F_Ep *= parameters->g;
   // sum over all procs
@@ -328,8 +337,8 @@ void POTENTIAL_ENERGY<T>::Convert_ARRAY_3D_To_Linear_Array()
   for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
-	rho_local_cells[index].rho = (*rho)(i,j,k);
-	rho_local_cells[index++].volume =(T)1/(*grid->inverse_Jacobian)(i,j,k);
+	      rho_local_cells[index].rho = (*rho)(i,j,k);
+        rho_local_cells[index++].volume =(T)1/(*grid->inverse_Jacobian)(i,j,k);
   }
 }
 //*****************************************************************************
@@ -423,6 +432,8 @@ void POTENTIAL_ENERGY<T>::Redistribute_Local_Arrays()
   local_sorted_array_size = 0;
   for(int i=0;i<p;i++) local_sorted_array_size+=sorted_array_part_sizes_recv[i];
   rho_sorted_cells = new CELL<T>[local_sorted_array_size];
+  sorted_centroid_height = new T[local_sorted_array_size];
+  sorted_local_height = new T[local_sorted_array_size];
 
   // 2)
   send_displacements[0] = 0; recv_displacements[0] = 0;

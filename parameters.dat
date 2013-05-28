@@ -13,7 +13,7 @@
  x_stretching_ratio = 0.           // push grid points toward the right
  z_stretching_ratio = 0.           // push grid points toward the bottom
  delta_time = .1                   // delta time
- max_timestep = 100                // maximum timestep for the simulation
+ max_timestep = 300                // maximum timestep for the simulation
  save_data_timestep_period = 1     // write on disk after each period
  print_timestep_period = 1         // display to console after each period
  restart_timestep    =  0          // restarts sim, if nontrivial value
@@ -31,4 +31,4 @@
  lambda_perturb = .25              // initial interface perturbation wavelength
  x_s = 1.                          // x position at beginning of slope
  slope = .218                      // bottom slope 
- output_dir = "/home/barthur/zang/2D_test/" 
+ output_dir = "/home/barthur/zang/3D_test/" 

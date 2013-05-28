@@ -1336,7 +1336,8 @@ void NAVIER_STOKES_SOLVER<T>::Set_Progressive_Wave_BC(T time)
 T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
 {
   T E_k = (T)0;
-  // calculate local E_k
+  T F_Ek = (T)0;
+  // calculate local E_k and F_Ek
   for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
@@ -1344,8 +1345,19 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
         E_k += 0.5 * cell_volume * 
                ( pow((*u)(i,j,k).x,2) + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ); 
       }
+  if(mpi_driver->west_proc == NULL)
+    for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
+      for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
+        int i = grid->I_Min();
+          T cell_volume = (T)1 / (*grid->inverse_Jacobian)(i,j,k);
+          T cell_area = cell_volume / (parameters->x_length/parameters->num_total_nodes_x);
+          F_Ek += 0.5 * cell_area * (*parameters->west_velocity)(j,k).x *
+                ( pow((*parameters->west_velocity)(j,k).x,2) 
+                  + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ); 
+      }
   // sum over all procs
   mpi_driver->Replace_With_Sum_On_All_Procs(E_k);
+  mpi_driver->Replace_With_Sum_On_All_Procs(F_Ek);
   
   //write to disk
   if(!mpi_driver->my_rank){
@@ -1361,6 +1373,7 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
         return 0;
       }
       output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
+      output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
       output.close();
     } 
 
@@ -1373,6 +1386,7 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
         return 0;
       }
       output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
+      output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
       output.close();
     }
   }
