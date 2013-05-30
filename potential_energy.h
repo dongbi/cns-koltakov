@@ -307,7 +307,7 @@ T POTENTIAL_ENERGY<T>::Potential_Energy_Flux()
 {
   T F_Ep = (T)0;
   // calculate local F_Ep
-  if(mpi_driver->west_proc == NULL)
+  if(mpi_driver->west_proc == MPI_PROC_NULL)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
         int i = grid->I_Min();

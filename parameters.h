@@ -179,8 +179,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     two_d = true; //two-dimensional simulation (multigrid doesn't work in y)
   else
     two_d = false;
-  progressive_wave = true;
-  solitary_wave = false;
+  progressive_wave = false;
+  solitary_wave = true;
   scalar_advection = true;
   num_scalars = 2; //1: no scalar or rho only, 2: rho and passive scalar
   potential_energy = true; //true; //based on scalar
