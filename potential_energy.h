@@ -7,7 +7,7 @@
 template<class T=double>
 struct CELL
 {
-  T rho, volume;
+  T rho, volume, z, z_star, local_height, laplacian_rho;
 };
 
 template<class T=double>
@@ -41,7 +41,7 @@ class POTENTIAL_ENERGY
     send_displacements = new int[p]; 
     recv_displacements = new int[p];
     // register MPI datatype
-    int block_count[1] = {2};
+    int block_count[1] = {6}; //old 2
     MPI_Aint offset[1] = {0};
     MPI_Datatype old_types[1] = {MPI_DOUBLE};
     MPI_Type_struct(1, block_count, offset, old_types, &cell_type);
@@ -90,6 +90,7 @@ class POTENTIAL_ENERGY
     T slope, T x_slope, T x_length, T y_length);
   T Calculate_Cell_Centroid_Height(T local_height, T cell_bottom_height,
     T slope, T x_slope, T x_length, T y_length);
+  T Calculate_Laplacian_of_Rho(int i, int j, int k);
   T Receive_Initial_Local_Height();
   void Send_Final_Local_Height(T final_cell_height);
 
@@ -107,7 +108,7 @@ class POTENTIAL_ENERGY
       *send_displacements, *recv_displacements;
   int array_size;
   T *E_background, *E_potential, *F_background, *F_potential;
-  T *sorted_centroid_height, *sorted_local_height;
+  T *sorted_z_star, *sorted_local_height, *sorted_laplacian_rho;
   MPI_Datatype cell_type;
 };
 //*****************************************************************************
@@ -162,11 +163,10 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   for(int n = 0; n < local_sorted_array_size; n++){
     local_height = Calculate_Cell_Height(rho_sorted_cells[n].volume, 
       cell_height,parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
-    sorted_local_height[n] = local_height;
-    centroid_height = Calculate_Cell_Centroid_Height(
-      local_height,cell_height,parameters->slope,parameters->x_s,
-      parameters->x_length,parameters->y_length);
-    sorted_centroid_height[n] = centroid_height;
+    rho_sorted_cells[n].local_height = local_height;
+    centroid_height = Calculate_Cell_Centroid_Height(local_height,cell_height,
+      parameters->slope,parameters->x_s,parameters->x_length,parameters->y_length);
+    rho_sorted_cells[n].z_star = centroid_height;
     E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume 
          * centroid_height;
     cell_height += local_height;
@@ -177,7 +177,10 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   // sum over all procs
   if(p>1) {
     mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
-    //if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
+    if(!parameters->west_velocity)
+      if(rho_sorted_cells){ 
+        delete[] rho_sorted_cells; //created in Sorting func
+      }
   }
 
   return E_b;
@@ -193,10 +196,10 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy_Flux()
   // calculate F_Eb
   for(int n = 0; n < local_sorted_array_size; n++){
     F_Eb += rho_sorted_cells[n].rho  
-          * sorted_centroid_height[n] 
-          * (sorted_local_height[n]*parameters->y_length)
+          * rho_sorted_cells[n].z_star 
+          * (rho_sorted_cells[n].local_height*parameters->y_length)
           * parameters->forcing_amp*cos(parameters->m
-                                       *(sorted_centroid_height[n]))
+                                       *(rho_sorted_cells[n].z_star))
                                    *sin(parameters->freq*parameters->time);
   }
   F_Eb *= parameters->g;
@@ -206,8 +209,6 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy_Flux()
     mpi_driver->Replace_With_Sum_On_All_Procs(F_Eb);
     if(rho_sorted_cells){ 
       delete[] rho_sorted_cells; //created in Sorting func
-      delete[] sorted_centroid_height;
-      delete[] sorted_local_height;
     }
   }
 
@@ -338,8 +339,36 @@ void POTENTIAL_ENERGY<T>::Convert_ARRAY_3D_To_Linear_Array()
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
 	      rho_local_cells[index].rho = (*rho)(i,j,k);
-        rho_local_cells[index++].volume =(T)1/(*grid->inverse_Jacobian)(i,j,k);
+        rho_local_cells[index].volume =(T)1/(*grid->inverse_Jacobian)(i,j,k);
+        rho_local_cells[index].z = (*grid)(i,j,k).z;
+        rho_local_cells[index].z_star = (T)0; //calculated with Eb
+        rho_local_cells[index].local_height = (T)0; //calculated with Eb
+        rho_local_cells[index++].laplacian_rho = Calculate_Laplacian_of_Rho(i,j,k);
   }
+}
+//*****************************************************************************
+// Sort distributed global density array.
+// Return sorted density array with their corresponding cell volumes.
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Calculate_Laplacian_of_Rho(int i, int j, int k)
+{
+  T laplacian = (T)0;
+
+  //11
+  laplacian += 
+      (*grid->G11)(i  ,j,k) * ((*rho)(i+1,j,k)-(*rho)(i  ,j,k))
+    - (*grid->G11)(i-1,j,k) * ((*rho)(i  ,j,k)-(*rho)(i-1,j,k));
+  //22
+  laplacian +=
+      (*grid->G22)(i,j  ,k) * ((*rho)(i,j+1,k)-(*rho)(i,j  ,k))
+    - (*grid->G22)(i,j-1,k) * ((*rho)(i,j  ,k)-(*rho)(i,j-1,k));
+  //33
+  laplacian +=
+      (*grid->G33)(i,j,k  ) * ((*rho)(i,j,k+1)-(*rho)(i,j,k  ))
+    - (*grid->G33)(i,j,k-1) * ((*rho)(i,j,k  )-(*rho)(i,j,k-1));
+
+  return laplacian;
 }
 //*****************************************************************************
 // Sort distributed global density array.
@@ -432,8 +461,6 @@ void POTENTIAL_ENERGY<T>::Redistribute_Local_Arrays()
   local_sorted_array_size = 0;
   for(int i=0;i<p;i++) local_sorted_array_size+=sorted_array_part_sizes_recv[i];
   rho_sorted_cells = new CELL<T>[local_sorted_array_size];
-  sorted_centroid_height = new T[local_sorted_array_size];
-  sorted_local_height = new T[local_sorted_array_size];
 
   // 2)
   send_displacements[0] = 0; recv_displacements[0] = 0;

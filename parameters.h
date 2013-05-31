@@ -250,7 +250,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   total_time = 0;          // total simulation runtime
   //delta_time = (T).002; //.01;(le.001)//.0001;(le)//.00001; // time increment
   //molecular_viscosity   = 1e-6; //(T).1;//1e-4;//5774e-12;//1e-6;//001;//.5;
-  molecular_diffusivity = (T)0;//.5;
+  molecular_diffusivity = (T)1e-6;//.5;
   pi = (T)3.14159265;
   g = (T)9.80665;
   omega = (T)0;      // Coriolis
