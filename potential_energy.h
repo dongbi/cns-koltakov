@@ -20,6 +20,7 @@ class POTENTIAL_ENERGY
   {
     E_background = new T[parameters->max_timestep]; 
     E_potential = new T[parameters->max_timestep]; 
+    Phi_d = new T[parameters->max_timestep];
     F_background = new T[parameters->max_timestep]; 
     F_potential = new T[parameters->max_timestep]; 
     array_size = 0;
@@ -51,7 +52,7 @@ class POTENTIAL_ENERGY
   ~POTENTIAL_ENERGY() 
   {
     delete[] E_background; delete[] E_potential;
-    delete[] F_background; delete[] F_potential;
+    delete[] F_background; delete[] F_potential; delete[] Phi_d;
     delete[] rho_local_cells; delete[] rho_local_samples;
     if(!mpi_driver->my_rank) delete[] rho_global_samples;
     delete[] pivots;
@@ -63,6 +64,7 @@ class POTENTIAL_ENERGY
   T Calculate(){
     E_background[array_size] = Background_Potential_Energy();
     E_potential[array_size] = Total_Potential_Energy();
+    Phi_d[array_size] = Mixing();
     if(parameters->west_velocity){
       F_background[array_size] = Background_Potential_Energy_Flux();
       F_potential[array_size] = Potential_Energy_Flux();
@@ -75,6 +77,7 @@ class POTENTIAL_ENERGY
  private:
   T Background_Potential_Energy();
   T Background_Potential_Energy_Flux();
+  T Mixing();
   T Total_Potential_Energy();
   T Potential_Energy_Flux();
 
@@ -107,7 +110,7 @@ class POTENTIAL_ENERGY
   int *sorted_array_part_sizes_send, *sorted_array_part_sizes_recv,
       *send_displacements, *recv_displacements;
   int array_size;
-  T *E_background, *E_potential, *F_background, *F_potential;
+  T *E_background, *E_potential, *Phi_d, *F_background, *F_potential;
   T *sorted_z_star, *sorted_local_height, *sorted_laplacian_rho;
   MPI_Datatype cell_type;
 };
@@ -175,15 +178,35 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   Send_Final_Local_Height(cell_height);
 
   // sum over all procs
+  if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
+
+  return E_b;
+}
+//*****************************************************************************
+// Calculate phi_d, irreversible diapycnal mixing
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Mixing()
+{
+  T phi_d = (T)0;
+
+  // calculate F_Eb
+  for(int n = 0; n < local_sorted_array_size; n++){
+    phi_d += rho_sorted_cells[n].z_star * rho_sorted_cells[n].laplacian_rho 
+           * rho_sorted_cells[n].volume;
+  }
+  phi_d *= parameters->g * parameters->molecular_diffusivity;
+
+  // sum over all procs
   if(p>1) {
-    mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
+    mpi_driver->Replace_With_Sum_On_All_Procs(phi_d);
     if(!parameters->west_velocity)
       if(rho_sorted_cells){ 
         delete[] rho_sorted_cells; //created in Sorting func
       }
   }
 
-  return E_b;
+  return phi_d;
 }
 //*****************************************************************************
 // Background Potential Energy Flux at West Boundary
@@ -367,6 +390,8 @@ T POTENTIAL_ENERGY<T>::Calculate_Laplacian_of_Rho(int i, int j, int k)
   laplacian +=
       (*grid->G33)(i,j,k  ) * ((*rho)(i,j,k+1)-(*rho)(i,j,k  ))
     - (*grid->G33)(i,j,k-1) * ((*rho)(i,j,k  )-(*rho)(i,j,k-1));
+  
+  laplacian *= (*grid->inverse_Jacobian)(i,j,k);
 
   return laplacian;
 }
@@ -521,6 +546,7 @@ int POTENTIAL_ENERGY<T>::Write_To_Disk()
       }
       output.write(reinterpret_cast<char *>(&E_background[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&E_potential[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&Phi_d[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&F_background[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&F_potential[array_size-1]),sizeof(T));
       output.close();
@@ -536,6 +562,7 @@ int POTENTIAL_ENERGY<T>::Write_To_Disk()
       }
       output.write(reinterpret_cast<char *>(&E_background[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&E_potential[array_size-1]),sizeof(T));
+      output.write(reinterpret_cast<char *>(&Phi_d[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&F_background[array_size-1]),sizeof(T));
       output.write(reinterpret_cast<char *>(&F_potential[array_size-1]),sizeof(T));
       output.close();
