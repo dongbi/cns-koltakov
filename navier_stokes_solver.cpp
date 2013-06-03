@@ -1361,36 +1361,38 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
   mpi_driver->Replace_With_Sum_On_All_Procs(F_Ek);
   
   //write to disk
-  if(!mpi_driver->my_rank){
+  if(parameters->time_step % parameters->save_data_timestep_period == 0)
+    if(!mpi_driver->my_rank){
 
-    stringstream filename;
+      stringstream filename;
 
-    //overwrite existing file
-    if(parameters->time_step==parameters->save_data_timestep_period){
-      filename << parameters->output_dir << "kinetic_energy.0";
-      ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
-      if(!output){
-        cout << "ERROR: could not open potential_energy file for writing" <<endl;
-        return 0;
+      //overwrite existing file
+      if(parameters->time_step==parameters->save_data_timestep_period){
+        filename << parameters->output_dir << "kinetic_energy.0";
+        ofstream output(filename.str().c_str(), ios::out | ios::trunc | ios::binary);
+        if(!output){
+          cout << "ERROR: could not open potential_energy file for writing" <<endl;
+          return 0;
+        }
+        output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
+        output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
+        output.close();
+      } 
+
+      //append at end of existing file
+      else{
+        filename << parameters->output_dir << "kinetic_energy.0";
+        ofstream output(filename.str().c_str(), ios::out | ios::app | ios::binary);
+        if(!output){
+          cout << "ERROR: could not open potential_energy file for writing" <<endl;
+          return 0;
+        }
+        output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
+        output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
+        output.close();
       }
-      output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
-      output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
-      output.close();
-    } 
-
-    //append at end of existing file
-    else{
-      filename << parameters->output_dir << "kinetic_energy.0";
-      ofstream output(filename.str().c_str(), ios::out | ios::app | ios::binary);
-      if(!output){
-        cout << "ERROR: could not open potential_energy file for writing" <<endl;
-        return 0;
-      }
-      output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
-      output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
-      output.close();
     }
-  }
+  
   return E_k;
 }
 //*****************************************************************************
