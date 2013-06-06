@@ -190,7 +190,7 @@ T POTENTIAL_ENERGY<T>::Mixing()
 {
   T phi_d = (T)0;
 
-  // calculate F_Eb
+  // calculate Phi_d
   for(int n = 0; n < local_sorted_array_size; n++){
     phi_d += rho_sorted_cells[n].z_star * rho_sorted_cells[n].laplacian_rho 
            * rho_sorted_cells[n].volume;
