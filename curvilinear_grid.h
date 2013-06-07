@@ -65,6 +65,7 @@ class CURVILINEAR_GRID
 
   ARRAY_3D<VECTOR_3D<T> >* grid;
   ARRAY_3D<T> *XI_x,*XI_y,*XI_z, *ET_x,*ET_y,*ET_z, *ZT_x,*ZT_y,*ZT_z,
+              *XI_x_c,*XI_y_c,*XI_z_c, *ET_x_c,*ET_y_c,*ET_z_c, *ZT_x_c,*ZT_y_c,*ZT_z_c,
               *inverse_Jacobian,
               *G11,*G12,*G13, *G21,*G22,*G23, *G31,*G32,*G33, *GCC;
 

@@ -1337,7 +1337,10 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
 {
   T E_k = (T)0;
   T F_Ek = (T)0;
-  // calculate local E_k and F_Ek
+  T epsilon = (T)0;
+  T s_11, s_12, s_13, s_21, s_22, s_23, s_31, s_32, s_33;
+
+  // calculate E_k 
   for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
     for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
       for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
@@ -1345,6 +1348,8 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
         E_k += 0.5 * cell_volume * 
                ( pow((*u)(i,j,k).x,2) + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ); 
       }
+
+  // calculate F_Ek
   if(parameters->west_velocity)
     if(mpi_driver->west_proc == NULL)
       for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
@@ -1356,10 +1361,59 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
             ( pow((*parameters->west_velocity)(j,k).x,2) 
               + pow((*u)(i,j,k).y,2) + pow((*u)(i,j,k).z,2) ); 
          }
+  // calculate dissipation
+  for(int i = grid->I_Min(); i <= grid->I_Max(); i++)
+    for(int j = grid->J_Min(); j <= grid->J_Max(); j++)
+      for(int k = grid->K_Min(); k <= grid->K_Max(); k++){
+        s_11 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_x_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).x - (*u)(i-1,j,k).x ) 
+             + (*grid->ET_x_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).x - (*u)(i,j-1,k).x ) 
+             + (*grid->ZT_x_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).x - (*u)(i,j,k-1).x ) );
+        s_12 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_y_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).x - (*u)(i-1,j,k).x ) 
+             + (*grid->ET_y_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).x - (*u)(i,j-1,k).x ) 
+             + (*grid->ZT_y_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).x - (*u)(i,j,k-1).x ) );
+        s_13 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_z_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).x - (*u)(i-1,j,k).x ) 
+             + (*grid->ET_z_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).x - (*u)(i,j-1,k).x ) 
+             + (*grid->ZT_z_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).x - (*u)(i,j,k-1).x ) );
+        s_21 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_x_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).y - (*u)(i-1,j,k).y ) 
+             + (*grid->ET_x_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).y - (*u)(i,j-1,k).y ) 
+             + (*grid->ZT_x_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).y - (*u)(i,j,k-1).y ) );
+        s_22 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_y_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).y - (*u)(i-1,j,k).y ) 
+             + (*grid->ET_y_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).y - (*u)(i,j-1,k).y ) 
+             + (*grid->ZT_y_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).y - (*u)(i,j,k-1).y ) );
+        s_23 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_z_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).y - (*u)(i-1,j,k).y ) 
+             + (*grid->ET_z_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).y - (*u)(i,j-1,k).y ) 
+             + (*grid->ZT_z_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).y - (*u)(i,j,k-1).y ) );
+        s_31 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_x_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).z - (*u)(i-1,j,k).z ) 
+             + (*grid->ET_x_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).z - (*u)(i,j-1,k).z ) 
+             + (*grid->ZT_x_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).z - (*u)(i,j,k-1).z ) );
+        s_32 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_y_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).z - (*u)(i-1,j,k).z ) 
+             + (*grid->ET_y_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).z - (*u)(i,j-1,k).z ) 
+             + (*grid->ZT_y_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).z - (*u)(i,j,k-1).z ) );
+        s_33 = (*grid->inverse_Jacobian)(i,j,k) *
+             ( (*grid->XI_z_c)(i,j,k) * 0.5 * ( (*u)(i+1,j,k).z - (*u)(i-1,j,k).z ) 
+             + (*grid->ET_z_c)(i,j,k) * 0.5 * ( (*u)(i,j+1,k).z - (*u)(i,j-1,k).z ) 
+             + (*grid->ZT_z_c)(i,j,k) * 0.5 * ( (*u)(i,j,k+1).z - (*u)(i,j,k-1).z ) );
+
+        epsilon += (T)1 / (*grid->inverse_Jacobian)(i,j,k) *
+                 ( s_11*s_11 + s_12*s_12 + s_13*s_13
+                 + s_21*s_21 + s_22*s_22 + s_23*s_23
+                 + s_31*s_31 + s_32*s_32 + s_33*s_33 );
+      }
+  epsilon *= parameters->molecular_viscosity;
+
   // sum over all procs
   mpi_driver->Replace_With_Sum_On_All_Procs(E_k);
   mpi_driver->Replace_With_Sum_On_All_Procs(F_Ek);
-  
+  mpi_driver->Replace_With_Sum_On_All_Procs(epsilon);
+
   //write to disk
   if(parameters->time_step % parameters->save_data_timestep_period == 0)
     if(!mpi_driver->my_rank){
@@ -1376,6 +1430,7 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
         }
         output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
         output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
+        output.write(reinterpret_cast<char *>(&epsilon),sizeof(T));
         output.close();
       } 
 
@@ -1389,6 +1444,7 @@ T NAVIER_STOKES_SOLVER<T>::Total_Kinetic_Energy()
         }
         output.write(reinterpret_cast<char *>(&E_k),sizeof(T));
         output.write(reinterpret_cast<char *>(&F_Ek),sizeof(T));
+        output.write(reinterpret_cast<char *>(&epsilon),sizeof(T));
         output.close();
       }
     }

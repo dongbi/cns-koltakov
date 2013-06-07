@@ -69,7 +69,16 @@ void CURVILINEAR_GRID<T>::Init_Empty_Grid(T xmin,T xmax, T ymin,T ymax, T zmin,
   ET_z = new ARRAY_3D<T>(*grid);
   ZT_x = new ARRAY_3D<T>(*grid); ZT_y = new ARRAY_3D<T>(*grid);
   ZT_z = new ARRAY_3D<T>(*grid);
+
+  XI_x_c = new ARRAY_3D<T>(*grid); XI_y_c = new ARRAY_3D<T>(*grid);
+  XI_z_c= new ARRAY_3D<T>(*grid);
+  ET_x_c = new ARRAY_3D<T>(*grid); ET_y_c = new ARRAY_3D<T>(*grid);
+  ET_z_c = new ARRAY_3D<T>(*grid);
+  ZT_x_c = new ARRAY_3D<T>(*grid); ZT_y_c = new ARRAY_3D<T>(*grid);
+  ZT_z_c = new ARRAY_3D<T>(*grid);
+
   inverse_Jacobian = new ARRAY_3D<T>(*grid);
+  
   G11 = new ARRAY_3D<T>(*grid); G12 = new ARRAY_3D<T>(*grid);
   G13 = new ARRAY_3D<T>(*grid);
   G21 = new ARRAY_3D<T>(*grid); G22 = new ARRAY_3D<T>(*grid);
@@ -87,6 +96,9 @@ CURVILINEAR_GRID<T>::~CURVILINEAR_GRID()
   delete XI_x; delete XI_y; delete XI_z;
   delete ET_x; delete ET_y; delete ET_z;
   delete ZT_x; delete ZT_y; delete ZT_z;
+  delete XI_x_c; delete XI_y_c; delete XI_z_c;
+  delete ET_x_c; delete ET_y_c; delete ET_z_c;
+  delete ZT_x_c; delete ZT_y_c; delete ZT_z_c;
   delete inverse_Jacobian;
   delete G11; delete G12; delete G13;  delete G21; delete G22; delete G23;
   delete G31; delete G32; delete G33;  delete GCC;
@@ -397,6 +409,26 @@ void CURVILINEAR_GRID<T>::Calculate_Metrics()
         //                           / parameters->delta_time;
 
         (*inverse_Jacobian)(i,j,k) = (T)1 / inv_Jac;
+        
+        XI_s_X = ( Y_et * Z_zt - Y_zt * Z_et );
+        ET_s_X = ( Y_zt * Z_xi - Y_xi * Z_zt );
+        ZT_s_X = ( Y_xi * Z_et - Y_et * Z_xi );
+        XI_s_Y = ( Z_et * X_zt - Z_zt * X_et );
+        ET_s_Y = ( Z_zt * X_xi - Z_xi * X_zt );
+        ZT_s_Y = ( Z_xi * X_et - Z_et * X_xi );
+        XI_s_Z = ( X_et * Y_zt - X_zt * Y_et );
+        ET_s_Z = ( X_zt * Y_xi - X_xi * Y_zt );
+        ZT_s_Z = ( X_xi * Y_et - X_et * Y_xi );
+        
+        (*XI_x_c)(i,j,k) = XI_s_X;
+        (*XI_y_c)(i,j,k) = XI_s_Y;
+        (*XI_z_c)(i,j,k) = XI_s_Z;
+        (*ET_x_c)(i,j,k) = ET_s_X;
+        (*ET_y_c)(i,j,k) = ET_s_Y;
+        (*ET_z_c)(i,j,k) = ET_s_Z;
+        (*ZT_x_c)(i,j,k) = ZT_s_X;
+        (*ZT_y_c)(i,j,k) = ZT_s_Y;
+        (*ZT_z_c)(i,j,k) = ZT_s_Z;
       }
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++)
