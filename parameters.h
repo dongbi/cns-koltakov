@@ -314,10 +314,10 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   if(mg_sub_levels) {  
     //check if there are enough nodes for all sublevels (i.e., div 2^num_levs)
     int divisor = pow(2, mg_sub_levels);
-    assert(num_local_nodes_x % divisor == 0);
-    assert(num_local_nodes_z % divisor == 0);
+    //assert(num_local_nodes_x % divisor == 0);
+    //assert(num_local_nodes_z % divisor == 0);
     if(!two_d)
-      assert(num_local_nodes_y % divisor == 0);
+      //assert(num_local_nodes_y % divisor == 0);
     // setting up structures for multigrid subgrids
     num_subgrid_total_nodes_x = new int[mg_sub_levels];
     num_subgrid_total_nodes_y = new int[mg_sub_levels];
