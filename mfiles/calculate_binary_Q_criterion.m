@@ -3,7 +3,7 @@ function Q = calculate_binary_Q_criterion(x,y,z,u,v,w)
 %
 % Calculates Q-criterion using binary output from cns-koltakov. x,y,z are 
 % the grid points (cell centers) and u,v,w are the cartesian velocities at 
-% the cell centers. 
+% the cell centers, both including 1 halo cell. 
 % 
 % Q=1/2*(||Omega||^2 - ||S||^2) 
 %

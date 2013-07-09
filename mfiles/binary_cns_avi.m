@@ -10,18 +10,25 @@ Nframes = 296;
 for n=1:Nframes;
     display(n);
     openfig(['isoplot_',num2str(n),'fig.fig']);
-    print('-djpeg','-r300',['/home/barthur/zang/isoplot_movie_2/isoplot',num2str(n)]);
+    print('-djpeg',['/home/barthur/zang/animated_gif/isoplot',num2str(n+99)]);
     close(gcf);
 end
 
+%figure properties
+% h1=figure(1);
+% set(h1,'Position',[100 100 1500 1000]);
+% set(h1,'PaperPositionMode','auto')
+% set(gcf,'color','w');
+% set(gca,'nextplot','replacechildren','visible','off')
 % count = 1;
-% Nframes = 20;
+% Nframes = 294;
 % 
 % for n=1:Nframes
-%     openfig(['isoplot_',num2str(n),'fig.fig']);
-%     
+%     h1 = openfig(['isoplot_',num2str(n),'fig.fig'],'new','visible');
+%     set(h1,'PaperPositionMode','auto')
+%     set(gcf,'color','w');
 %     if count<=Nframes;
-%         f = getframe(gcf);
+%         f = getframe(h1);
 %         if count==1;
 %             [im,map] = rgb2ind(f.cdata,256,'nodither');
 %             im(1,1,1,Nframes) = 0;
@@ -31,11 +38,12 @@ end
 %     else
 %         break;
 %     end
-% 
+%     
 %     count=count+1;
+%     close(h1);
 % end
 % 
-% imwrite(im,map,movie_name,'DelayTime',0.1,'LoopCount',inf);
+% imwrite(im,map,'/home/barthur/Dropbox/Public/isoplot_movie_2.gif','DelayTime',0.1,'LoopCount',Inf);
 
 
 % %# figure

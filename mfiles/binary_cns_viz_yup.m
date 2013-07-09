@@ -3,11 +3,10 @@ clear all; clc; close all;
 
 % directory = '/usr/var/tmp/barthur/1101642/output/';
 % directory = '/usr/var/tmp/barthur/1102291/output/';
-directory = '/home/barthur/zang/3D_test/';
-% directory = '/home/barthur/zang/carlos/';
+directory = '/home/barthur/zang/tester/';
 
 % PLOTTING OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-timestep = 100; %timestep to plot
+timestep = 7000; %timestep to plot
 delta_ts = 0; %averaging
 FIGURE_ON = 1; %figure visible?
     print_ext = '-dpng'; %image file type
@@ -23,18 +22,30 @@ display_density_isosurface = 0;
 display_omega_1_isosurface = 0;
     omega_1_iso = 1.25;
 
-x_loc = 0; %if 0, west boundary
+x_loc = 2.075; %if 0, west boundary
 y_loc = 0; %if 0, centerline
 
 plot_xz = 1; %x-z plot
 plot_yz = 0; %y-z plot
 
 plot_quiver = 0;
-show_grid_lines = 0; %false = shading flat
+show_grid_lines = 1; %false = shading flat
 
 % OTHER PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[Nx, Ny, Nz, npx, npy, npz, Nt, save_timestep_period, ...
-    dt, x_length, y_length, z_length] = load_binary_parameters(directory);
+% [Nx, Ny, Nz, npx, npy, npz, Nt, save_timestep_period, ...
+%     dt, x_length, y_length, z_length] = load_binary_parameters(directory);
+Nx = 512; 
+Ny = 64;
+Nz = 1;
+npx = 8;
+npy = 2;
+npz = 1;
+Nt = 14800;
+save_timestep_period = 50;
+dt = 0.005;
+x_length = 3;
+y_length = 0.56;
+z_length = 0.5;
 
 % local grid dims
 % halo <- 1
@@ -128,7 +139,6 @@ if(display_density)
        end
        pcolor(x_xz,z_xz,rho_xz);
        colorbar;
-%        contour(x_xz,z_xz,rho_xz,[1, 1],'k');
        axis equal;
        axis([0 x_length -z_length 0]);
        xlabel('x [m]');
@@ -172,7 +182,6 @@ end
 if(display_velocity)
     [u,v,w] = load_binary_velocity(directory,timestep,...
         delta_ts/save_timestep_period, npx,npy,npz,l_ni_h2,l_nj_h2,l_nk_h2);
-
     
     if(plot_xz)
         u_xz = squeeze(u(:,y_slice,:));

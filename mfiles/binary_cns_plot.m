@@ -1,34 +1,37 @@
 % Plots CNS simulation data from .mat file created with
 % binary_cns_load.m
-clear all; clc; close all;
+clear all; clc; 
 
 % load /home/barthur/Desktop/1109466_Eb.mat
-load /home/barthur/Desktop/gdu5950.mat
+% load /home/barthur/Desktop/freeslip.mat
+% load /home/barthur/Desktop/gdu11550.mat
+load /home/barthur/zang/GRC/midslice-no-3.mat
+% load ./test.mat
 % load /home/barthur/Documents/MATLAB/research/zang_binary_out/test2.mat
 
 % PLOTTING OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 display_grid = 0;
-display_density = 0;
+display_density = 1;
 display_velocity = 0;
 display_scalar = 0;
 display_pressure = 0;
-display_isosurface = 1;
-display_density_isosurface = 1;
+display_isosurface = 0;
+display_density_isosurface = 0;
     rho_iso = 0;
 display_omega_1_isosurface = 0;
     omega_1_iso = 1.25;
 display_lambda_2_isosurface = 0;
     lambda_2_iso = -0.1;
-display_Q_criterion_isosurface = 1;
+display_Q_criterion_isosurface = 0;
     Q_iso = 1;
 display_potential_energy = 0;
     
-x_loc = 2.45; %if 0, west boundary
+x_loc = 0; %if 0, west boundary
 y_loc = 0; %if 0, centerline
 
-slices = 0;
+slices = 1;
 plot_xz = 1; %x-z plot
-plot_yz = 1; %y-z plot
+plot_yz = 0; %y-z plot
 
 plot_quiver = 0;
     iskip = 3;
@@ -328,11 +331,12 @@ end
 
 % POTENTIAL ENERGY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if(display_potential_energy)
-    PE_fig = figure;
+    PE_fig = figure(2);
     hold all;
     Eb = Eb - Eb(1);
     Ep = Ep - Ep(1);
     Ea = Ep - Eb;
+    Et = Ep + Ek;
     
 %     Ebmin = -findpeaks(-Eb(1:1500));
 %     Ebmin = Ebmin(1);
@@ -342,20 +346,20 @@ if(display_potential_energy)
 %     Eb = Eb - Ebamp*cos(2*pi/10*t) + Ebamp;
 %     Ep = Ep - Epamp*cos(2*pi/10*t) + Epamp;
     
-    t = t/dt;
-    plot(t(1:14000),Eb(1:14000),'b',t(1:14000),Ep(1:14000),'k',t(1:14000),Ea(1:14000),'r');
-    hold on;
-    plot([3700 3700],[-1 1],'k:');
-    plot([5500 5500],[-1 1],'k:');
-    plot([7600 7600],[-1 1],'k:');
-    plot([9600 9600],[-1 1],'k:');
-    plot([11700 11700],[-1 1],'k:');
-    plot([13800 13800],[-1 1],'k:');
-%     plot(t,Ep-Ep(1),'k',t,Eb-Eb(1),'b',t,Ea-Ea(1),'r',t,Ek,'k--');
+%     t = t/dt;
+%     plot(t(1:14000),Eb(1:14000),'b',t(1:14000),Ep(1:14000),'k',t(1:14000),Ea(1:14000),'r');
+%     hold on;
+%     plot([3700 3700],[-1 1],'k:');
+%     plot([5500 5500],[-1 1],'k:');
+%     plot([7600 7600],[-1 1],'k:');
+%     plot([9600 9600],[-1 1],'k:');
+%     plot([11700 11700],[-1 1],'k:');
+%     plot([13800 13800],[-1 1],'k:');
+    plot(t,Ep,'k--',t,Eb,'b',t,Ea,'r',t,Ek,'k:',t,Et,'k');
     xlabel('t [s]');
     ylabel('E-E_0');
     title('Time-series of Potential and Kinetic Energy');
-    legend('E_p','E_b','E_a','E_k');
+    legend('E_p','E_b','E_a','E_k','E_T');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

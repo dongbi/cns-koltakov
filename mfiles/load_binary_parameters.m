@@ -8,7 +8,7 @@ filename = [directory 'parameters.0'];
     
 str = sprintf('Reading Parameters...');  disp(str);
   
-fid = fopen([filename],'r'); 
+fid = fopen(filename,'r'); 
 
 ints = fread(fid,8,'int');
 Nx = ints(1);

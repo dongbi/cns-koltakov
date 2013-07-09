@@ -6,12 +6,12 @@ clear all; clc; close all;
 % directory = '/usr/var/tmp/barthur/1109177/output/';
 % directory = '/usr/var/tmp/barthur/1109466/output/';
 % directory = '/home/barthur/Desktop/';
-directory = '/home/barthur/zang/3D_test/';
+directory = '/home/barthur/zang/tester/';
 
 % LOAD OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-filename = 'solitary1.mat';
-timestep_initial = 1;
-timestep_final = 300; 
+filename = 'christine_2D.mat';
+timestep_initial = 50;
+timestep_final = 14800; 
 delta_ts = 0; %averaging
 
 load_grid = 1;
@@ -21,7 +21,7 @@ load_scalar = 0;
 load_pressure = 0;
 load_potential_energy = 0;
 
-lateral_average = 1;
+lateral_average = 0;
 
 % LOAD STATIC PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -51,8 +51,20 @@ if(lateral_average)
 end
 
 %Parameters
-[Nx, Ny, Nz, npx, npy, npz, Nt, save_timestep_period, ...
-    dt, x_length, y_length, z_length] = load_binary_parameters(directory);
+% [Nx, Ny, Nz, npx, npy, npz, Nt, save_timestep_period, ...
+%     dt, x_length, y_length, z_length] = load_binary_parameters(directory);
+Nx = 512; 
+Ny = 64;
+Nz = 1;
+npx = 8;
+npy = 2;
+npz = 1;
+Nt = 14800;
+save_timestep_period = 50;
+dt = 0.005;
+x_length = 3;
+y_length = 0.56;
+z_length = 0.5;
 
 % local grid dims
 % halo <- 1
