@@ -21,7 +21,7 @@ class MPI_DRIVER
 {
   public:
     MPI_DRIVER(PARAMETERS<T>& p) 
-      : output_dir(p.output_dir)
+      : output_dir(p.output_dir), restart_dir(p.restart_dir)
     {Initialize(p.argc,p.argv, p.num_cpu_x, p.num_cpu_y, p.num_cpu_z, 
         p.periodic_in_x, p.periodic_in_y, p.periodic_in_z, 
         p.num_local_nodes_x, p.num_local_nodes_y, p.num_local_nodes_z);}
@@ -89,7 +89,7 @@ class MPI_DRIVER
     MPI_Comm grid_comm;
     MPI_Status status; 
     int *periodic;
-    string output_dir, proc_coords_filename;
+    string output_dir, restart_dir, proc_coords_filename;
 
     int Save_Procs_Coordinates_In_File(string& output_filename);
     void Create_Output_Directory_If_Missing();
@@ -656,7 +656,7 @@ void MPI_DRIVER<T>::Write_Binary_Local_Array_Output(ofstream& output,
 int MPI_DRIVER<T>::Read_Binary_Local_Array(string a_name, ARRAY_3D<T>& a)
 {
   std::stringstream filename;
-  filename << output_dir << a_name << "." << my_rank; 
+  filename << restart_dir << a_name << "." << my_rank; 
 
   ifstream input(filename.str().c_str(), ios::in | ios::binary);
   if(!input){

@@ -25,7 +25,7 @@ class PARAMETERS
       turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d,
       progressive_wave, solitary_wave; 
  int  restart_timestep, max_timestep, 
-      save_data_timestep_period, print_timestep_period,
+      save_data_timestep_period, save_restart_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
       mg_smoothing_sub_iters, 
       halo_size, num_local_nodes_x, num_local_nodes_y,num_local_nodes_z,
@@ -41,7 +41,7 @@ class PARAMETERS
     omega, amp_p_grad, freq_p_grad, alpha, delta, ratio, rho0, a, Lw, 
     upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, slope,
     delta_perturb, lambda_perturb;
-  std::string output_dir, grid_filename;
+  std::string output_dir, restart_dir, grid_filename;
   int argc; 
   char** argv;
 
@@ -79,6 +79,7 @@ class PARAMETERS
     cout << "x_s =" << x_s << endl;
     cout << "slope =" << slope << endl;
     cout << "two_d =" << two_d << endl;
+    cout << restart_timestep << endl;
     */
   }
 
@@ -146,6 +147,8 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("max_timestep",max_timestep)) max_timestep = 200000;
   if(!parser->Get_Value("save_data_timestep_period",save_data_timestep_period))
     save_data_timestep_period = 500;
+  if(!parser->Get_Value("save_restart_timestep_period",save_restart_timestep_period))
+    save_restart_timestep_period = 500;
   if(!parser->Get_Value("print_timestep_period",print_timestep_period))
     print_timestep_period = 1;
   if(!parser->Get_Value("restart_timestep",restart_timestep))restart_timestep = 0;
@@ -167,6 +170,7 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("slope",slope)) slope = .218;
   // output
   if(!parser->Get_Value("output_dir",output_dir)) output_dir = "./output/";
+  if(!parser->Get_Value("restart_dir",restart_dir)) restart_dir = "./restart/";
 }
 //*****************************************************************************
 // 1) Sets parameters not expected from 'parameters.dat'

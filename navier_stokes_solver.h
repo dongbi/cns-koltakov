@@ -104,11 +104,17 @@ void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
 template<class T>
 void NAVIER_STOKES_SOLVER<T>::Post_Process()
 {
-  // save data ever save_data_timestep_period
+  // save data every save_data_timestep_period
   if(parameters->time_step % parameters->save_data_timestep_period == 0){
     //Save_Simulation_Data();  
     Save_Binary_Simulation_Data();
-    //Save_Simulation_Data_For_Restart();
+  }
+ 
+  // save data for restart
+  if(parameters->time_step % parameters->save_restart_timestep_period == 0){
+    if(mpi_driver->my_rank == 0)
+      cout << "Saving data for restart... " << endl;
+    Save_Simulation_Data_For_Restart();
   }
 
   if(parameters->aggregate_data) data_aggregator->Aggregate();

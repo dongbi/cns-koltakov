@@ -91,7 +91,11 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
     mpi_driver->Syncronize_All_Procs();
     //Save_Simulation_Data(); 
     if(mpi_driver->my_rank == 0) Save_Binary_Simulation_Parameters();
-  }else Load_Simulation_Data_For_Restart(parameters->restart_timestep);
+  }else {
+    if(mpi_driver->my_rank == 0) Save_Binary_Simulation_Parameters();
+    Save_Binary_Simulation_Data("grid", *grid->grid);
+    Load_Simulation_Data_For_Restart(parameters->restart_timestep);
+  }
 }
 //*****************************************************************************
 // Destructor
@@ -1126,6 +1130,8 @@ int NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data_For_Restart()
   mpi_driver->Write_Binary_Local_Array(output, *U_et); 
   mpi_driver->Write_Binary_Local_Array(output, *U_zt); 
   mpi_driver->Write_Binary_Local_Array(output, *P); 
+  mpi_driver->Write_Binary_Local_Array(output, *(*phi)(1)); 
+  mpi_driver->Write_Binary_Local_Array(output, *(*phi)(2)); 
   mpi_driver->Write_Binary_Local_Array(output, *RHS_for_AB); 
   output.close();
   return 1;
@@ -1137,8 +1143,9 @@ int NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data_For_Restart()
 int NAVIER_STOKES_SOLVER<T>::Load_Simulation_Data_For_Restart(int restart_ts)
 {
   stringstream filename;
-  filename << parameters->output_dir << "restart_t" 
-    << restart_ts<< "."<< mpi_driver->my_rank;
+  filename << parameters->restart_dir << "restart_t" 
+    << restart_ts << "." << mpi_driver->my_rank;
+
   ifstream input(filename.str().c_str(), ios::in | ios::binary);
   if(!input){
     cout<<"ERROR: could not open RESTART file for reading"<<endl;
@@ -1147,13 +1154,17 @@ int NAVIER_STOKES_SOLVER<T>::Load_Simulation_Data_For_Restart(int restart_ts)
   //parameters: time, timestep
   input.read(reinterpret_cast<char *>(&parameters->time),sizeof(T));
   input.read(reinterpret_cast<char *>(&parameters->time_step),sizeof(T));
+
   //TODO: grid: only for moving grid
+  
   //physical parameters: u (U_xi/et/zt), P, rho(if convection)
   mpi_driver->Read_Binary_Local_Array(input, *u);
   mpi_driver->Read_Binary_Local_Array(input, *U_xi);
   mpi_driver->Read_Binary_Local_Array(input, *U_et); 
   mpi_driver->Read_Binary_Local_Array(input, *U_zt);
   mpi_driver->Read_Binary_Local_Array(input, *P);
+  mpi_driver->Read_Binary_Local_Array(input, *(*phi)(1)); 
+  mpi_driver->Read_Binary_Local_Array(input, *(*phi)(2)); 
   mpi_driver->Read_Binary_Local_Array(input, *RHS_for_AB);
   input.close();
   return 1;
