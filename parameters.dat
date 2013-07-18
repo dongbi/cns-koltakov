@@ -13,11 +13,11 @@
  x_stretching_ratio = 0.           // push grid points toward the right
  z_stretching_ratio = 0.           // push grid points toward the bottom
  delta_time = .1                   // delta time
- max_timestep = 50                 // maximum timestep for the simulation
+ max_timestep = 600                // maximum timestep for the simulation
  save_data_timestep_period = 1     // write on disk after each period
- save_restart_timestep_period = 25 // write on disk after each period
+ save_restart_timestep_period = 300 // write on disk after each period cant be zero
  print_timestep_period = 1         // display to console after each period
- restart_timestep = 25              // restarts sim, if nontrivial value
+ restart_timestep = 0              // restarts sim, if nontrivial value
  molecular_viscosity =  1e-6
  alpha = .99                       // interface thickness parameter
  delta = .03                       // interface thickness parameter
@@ -32,5 +32,5 @@
  lambda_perturb = .25              // initial interface perturbation wavelength
  x_s = 1.                          // x position at beginning of slope
  slope = .218                      // bottom slope 
- output_dir = "/home/barthur/zang/3D_test_restart/" 
- restart_dir = "/home/barthur/zang/3D_test/"
+ output_dir = "/home/barthur/zang/3D_test/"  //if restart make new directory
+ restart_dir = "/home/barthur/zang/3D_test/" //old directory to restart from

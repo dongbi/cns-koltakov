@@ -267,7 +267,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   west_velocity = NULL;
   depth = NULL;
   pressure_gradient = NULL;
-  grid_filename = "grid_sloshing_wave.dat";//"grid_lock_exchange.dat";
+  grid_filename = "grid.dat";//"grid_lock_exchange.dat";
 
   x_length = x_max - x_min;
   y_length = y_max - y_min; 
