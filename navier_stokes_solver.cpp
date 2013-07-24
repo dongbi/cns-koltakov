@@ -1130,8 +1130,11 @@ int NAVIER_STOKES_SOLVER<T>::Save_Simulation_Data_For_Restart()
   mpi_driver->Write_Binary_Local_Array(output, *U_et); 
   mpi_driver->Write_Binary_Local_Array(output, *U_zt); 
   mpi_driver->Write_Binary_Local_Array(output, *P); 
-  mpi_driver->Write_Binary_Local_Array(output, *(*phi)(1)); 
-  mpi_driver->Write_Binary_Local_Array(output, *(*phi)(2)); 
+  if(parameters->scalar_advection){
+    mpi_driver->Write_Binary_Local_Array(output, *(*phi)(1)); 
+    if(parameters->num_scalars ==2)
+    mpi_driver->Write_Binary_Local_Array(output, *(*phi)(2)); 
+  }
   mpi_driver->Write_Binary_Local_Array(output, *RHS_for_AB); 
   output.close();
   return 1;
