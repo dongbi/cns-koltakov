@@ -89,6 +89,8 @@ class POTENTIAL_ENERGY
   void Redistribute_Local_Arrays();
 
   T Calculate_Planform_Area(T cell_height);
+  T Calculate_Planform_Area_Smooth_Grid(T cell_height, T slope, T xend, T zend, 
+    T radius, T xc, T zc, T x_length, T y_length, T z_length);
   T Calculate_Cell_Height(T cell_volume, T cell_bottom_height,
     T slope, T x_slope, T x_length, T y_length);
   T Calculate_Cell_Centroid_Height(T local_height, T cell_bottom_height,
@@ -120,7 +122,6 @@ class POTENTIAL_ENERGY
 template<class T> 
 T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
 {
-  /*
   T E_b = (T)0;
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
@@ -133,12 +134,14 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
     //T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
-    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area(cell_height);
+    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area_Smooth_Grid(cell_height,
+        parameters->slope, parameters->xend, parameters->zend, parameters->radius, 
+        parameters->xc, parameters->zc, parameters->x_length, parameters->y_length, 
+        parameters->z_length);
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
-    E_b += (rho_sorted_cells[n].rho * parameters->rho0 + parameters->rho0) 
-           * rho_sorted_cells[n].volume * cell_height;
-    //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
+    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
+               //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
     //  cout.precision(15);
     //  cout<<"NOT SORTED:"<<n<<":"<< rho_sorted_cells[n].rho 
     //      <<" > "<<rho_sorted_cells[n-1].rho<<endl;
@@ -150,11 +153,10 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   // sum over all procs
   if(p>1) {
     mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
-    if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
   }
   return E_b;
-  */
 
+  /*
   //BOBBY CHANGES
   T E_b = (T)0;
   T local_height, centroid_height;
@@ -181,6 +183,7 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
 
   return E_b;
+  */
 }
 //*****************************************************************************
 // Calculate phi_d, irreversible diapycnal mixing
@@ -244,7 +247,7 @@ template<class T>
 T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
 {
   T area = (T)0;
-
+    
   if(cell_height < (parameters->slope * (parameters->x_length - parameters->x_s)))
     area = (parameters->x_s + (1/parameters->slope)*cell_height);
   else
@@ -254,7 +257,26 @@ T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
   return area;
 }
 //*****************************************************************************
-// Calculate cell height for Eb calculation
+// Calculate planform area of smooth grid domain for E_b calculation
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Calculate_Planform_Area_Smooth_Grid(T cell_height, T slope, T xend, T zend, 
+    T radius, T xc, T zc, T x_length, T y_length, T z_length)
+{
+  T area = (T)0;
+    
+  if(cell_height < slope*x_length + (zend - slope*xend) + z_length && cell_height > zend + z_length)
+    area = ((cell_height - z_length) - (zend - slope*xend))/slope; 
+  else if(cell_height <= zend + z_length)
+    area = sqrt(pow(radius,2) - pow((cell_height - z_length)-zc,2)) + xc; 
+  else
+    area = parameters->x_length;
+
+  area *= parameters->y_length;
+  return area;
+}
+//*****************************************************************************
+// Calculate local cell height for Eb calculation
 //*****************************************************************************
 template<class T> 
 T POTENTIAL_ENERGY<T>::Calculate_Cell_Height(T cell_volume, T cell_bottom_height,

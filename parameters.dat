@@ -32,5 +32,5 @@
  lambda_perturb = .25              // initial interface perturbation wavelength
  x_s = 1.                          // x position at beginning of slope
  slope = .218                      // bottom slope 
- output_dir = "/home/barthur/zang/oldgrid/"  //if restart make new directory
+ output_dir = "/home/barthur/zang/3D_test/" //if restart make new directory
  restart_dir = "/home/barthur/zang/3D_test/" //old directory to restart from
