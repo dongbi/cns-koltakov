@@ -40,7 +40,7 @@ class PARAMETERS
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
     omega, amp_p_grad, freq_p_grad, alpha, delta, ratio, rho0, a, Lw, 
     upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, slope,
-    delta_perturb, lambda_perturb;
+    delta_perturb, lambda_perturb, xend, zend, radius, xc, zc;
   std::string output_dir, restart_dir, grid_filename;
   int argc; 
   char** argv;
@@ -268,6 +268,13 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   depth = NULL;
   pressure_gradient = NULL;
   grid_filename = "grid.dat";//"grid_lock_exchange.dat";
+
+  //Smooth grid parameters from matlab file (used in Eb calculation)
+  xend = (T)1.314; //x value at end of curvature
+  zend = (T)-0.4912; //z value at end of curvature
+  radius = (T)3; //radius of curvature of corner at beginning of slope
+  xc = (T)0.675; //x center of radius of curvature
+  zc = (T)2.44; //z center of radius of curvature
 
   x_length = x_max - x_min;
   y_length = y_max - y_min; 

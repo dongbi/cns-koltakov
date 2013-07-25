@@ -89,6 +89,8 @@ class POTENTIAL_ENERGY
   void Redistribute_Local_Arrays();
 
   T Calculate_Planform_Area(T cell_height);
+  T Calculate_Planform_Area_Smooth_Grid(T cell_height, T slope, T xend, T zend, 
+    T radius, T xc, T zc, T x_length, T y_length, T z_length);
   T Calculate_Cell_Height(T cell_volume, T cell_bottom_height,
     T slope, T x_slope, T x_length, T y_length);
   T Calculate_Cell_Centroid_Height(T local_height, T cell_bottom_height,
@@ -132,7 +134,10 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
     //T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
-    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area(cell_height);
+    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area_Smooth_Grid(cell_height,
+        parameters->slope, parameters->xend, parameters->zend, parameters->radius, 
+        parameters->xc, parameters->zc, parameters->x_length, parameters->y_length, 
+        parameters->z_length);
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
     E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
@@ -242,27 +247,28 @@ template<class T>
 T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
 {
   T area = (T)0;
-  T xend = 1.3140;
-  T zend = -0.4912;
-  T radius = 3;
-  T xc = 0.675;
-  T zc = -parameters->z_length + radius;
-  
-  /*
+    
   if(cell_height < (parameters->slope * (parameters->x_length - parameters->x_s)))
     area = (parameters->x_s + (1/parameters->slope)*cell_height);
   else
     area = parameters->x_length;
-  */
 
-  if(cell_height < parameters->slope*parameters->x_length 
-                   + (zend - parameters->slope*xend)
-                   + parameters->z_length &&
-     cell_height > zend + parameters->z_length)
-
-    area = ((cell_height - parameters->z_length) - (zend - parameters->slope*xend))/parameters->slope; 
-  else if(cell_height < zend + parameters->z_length)
-      area = sqrt(pow(radius,2) - pow((cell_height - parameters->z_length)-zc,2)) + xc; 
+  area *= parameters->y_length;
+  return area;
+}
+//*****************************************************************************
+// Calculate planform area of smooth grid domain for E_b calculation
+//*****************************************************************************
+template<class T> 
+T POTENTIAL_ENERGY<T>::Calculate_Planform_Area_Smooth_Grid(T cell_height, T slope, T xend, T zend, 
+    T radius, T xc, T zc, T x_length, T y_length, T z_length)
+{
+  T area = (T)0;
+    
+  if(cell_height < slope*x_length + (zend - slope*xend) + z_length && cell_height > zend + z_length)
+    area = ((cell_height - z_length) - (zend - slope*xend))/slope; 
+  else if(cell_height <= zend + z_length)
+    area = sqrt(pow(radius,2) - pow((cell_height - z_length)-zc,2)) + xc; 
   else
     area = parameters->x_length;
 
