@@ -120,7 +120,6 @@ class POTENTIAL_ENERGY
 template<class T> 
 T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
 {
-  /*
   T E_b = (T)0;
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
@@ -136,9 +135,8 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
     T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area(cell_height);
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
-    E_b += (rho_sorted_cells[n].rho * parameters->rho0 + parameters->rho0) 
-           * rho_sorted_cells[n].volume * cell_height;
-    //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
+    E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
+               //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
     //  cout.precision(15);
     //  cout<<"NOT SORTED:"<<n<<":"<< rho_sorted_cells[n].rho 
     //      <<" > "<<rho_sorted_cells[n-1].rho<<endl;
@@ -150,11 +148,10 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   // sum over all procs
   if(p>1) {
     mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
-    if(rho_sorted_cells) delete[] rho_sorted_cells; //created in Sorting func
   }
   return E_b;
-  */
 
+  /*
   //BOBBY CHANGES
   T E_b = (T)0;
   T local_height, centroid_height;
@@ -181,6 +178,7 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
 
   return E_b;
+  */
 }
 //*****************************************************************************
 // Calculate phi_d, irreversible diapycnal mixing
@@ -244,9 +242,27 @@ template<class T>
 T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
 {
   T area = (T)0;
-
+  T xend = 1.3140;
+  T zend = -0.4912;
+  T radius = 3;
+  T xc = 0.675;
+  T zc = -parameters->z_length + radius;
+  
+  /*
   if(cell_height < (parameters->slope * (parameters->x_length - parameters->x_s)))
     area = (parameters->x_s + (1/parameters->slope)*cell_height);
+  else
+    area = parameters->x_length;
+  */
+
+  if(cell_height < parameters->slope*parameters->x_length 
+                   + (zend - parameters->slope*xend)
+                   + parameters->z_length &&
+     cell_height > zend + parameters->z_length)
+
+    area = ((cell_height - parameters->z_length) - (zend - parameters->slope*xend))/parameters->slope; 
+  else if(cell_height < zend + parameters->z_length)
+      area = sqrt(pow(radius,2) - pow((cell_height - parameters->z_length)-zc,2)) + xc; 
   else
     area = parameters->x_length;
 
@@ -254,7 +270,7 @@ T POTENTIAL_ENERGY<T>::Calculate_Planform_Area(T cell_height)
   return area;
 }
 //*****************************************************************************
-// Calculate cell height for Eb calculation
+// Calculate local cell height for Eb calculation
 //*****************************************************************************
 template<class T> 
 T POTENTIAL_ENERGY<T>::Calculate_Cell_Height(T cell_volume, T cell_bottom_height,
