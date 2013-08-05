@@ -140,6 +140,7 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
         parameters->z_length);
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
+    rho_sorted_cells[n].z_star = cell_height;
     E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
                //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
     //  cout.precision(15);
