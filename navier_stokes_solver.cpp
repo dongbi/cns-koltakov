@@ -42,7 +42,12 @@ NAVIER_STOKES_SOLVER<T>::NAVIER_STOKES_SOLVER(int argc, char ** argv)
     grid = new CURVILINEAR_MOVING_GRID<T>(parameters, mpi_driver);
   else
     grid = new CURVILINEAR_GRID<T>(parameters, mpi_driver);
-  turbulence = NULL; //turbulence is not implemented yet
+
+  //initialize turbulence
+  if(parameters->turbulence)
+    turbulence = new TURBULENCE<T>(parameters, mpi_driver, grid, (*phi)(1), u);
+  else
+    turbulence = NULL;
 
   //initialize pressure, convection and scalar(E_p, if needed) classes
   pressure = new PRESSURE<T>(parameters, mpi_driver, grid, P, u,U_xi,U_et,U_zt);
@@ -105,6 +110,7 @@ NAVIER_STOKES_SOLVER<T>::~NAVIER_STOKES_SOLVER()
 {
   delete u; delete U_xi; delete U_et; delete U_zt; delete P; delete RHS_for_AB;
   if(parameters->moving_grid) delete moving_grid_engine;
+  if(parameters->turbulence) delete turbulence;
   if(parameters->scalar_advection){ 
     delete phi; 
     if(potential_energy) delete potential_energy;
