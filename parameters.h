@@ -194,7 +194,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   open_top = false;
   variable_fixed_depth = true; //sinusoidal bathymetry
   coriolis = false;  
-  read_grid_from_file = true; //true;
+  read_grid_from_file = false; //true;
 
   // boundary conditions
   periodic_in_x = false; //horizontal
