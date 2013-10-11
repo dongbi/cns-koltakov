@@ -1,4 +1,5 @@
-function [XI_X,ET_X,ZT_X,XI_Y,ET_Y,ZT_Y,XI_Z,ET_Z,ZT_Z,J] = calculate_binary_metrics(x,y,z)
+function [XI_X,ET_X,ZT_X,XI_Y,ET_Y,ZT_Y,XI_Z,ET_Z,ZT_Z,J] = ...
+                                            calculate_binary_metrics(x,y,z)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Calculates metric quantities using binary output from cns-koltakov. x,y,z 

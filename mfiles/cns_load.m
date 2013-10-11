@@ -1,18 +1,13 @@
 % Loads CNS simulation data from binary output files to .mat file
 clear all; clc; close all;
 
-% directory = '/usr/var/tmp/barthur/1101642/output/';
-% directory = '/usr/var/tmp/barthur/1102291/output/';
-% directory = '/usr/var/tmp/barthur/1109177/output/';
-% directory = '/usr/var/tmp/barthur/1109466/output/';
-% directory = '/home/barthur/Desktop/';
 directory = '/home/barthur/zang/3D_test/';
 
 % LOAD OPTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-filename = 'solitary1.mat';
+filename = 'file.mat';
 timestep_initial = 1;
 timestep_final = 300; 
-delta_ts = 0; %averaging
+delta_ts = 0; %always 0
 
 load_grid = 1;
 load_density = 1;

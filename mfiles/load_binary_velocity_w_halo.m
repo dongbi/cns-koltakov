@@ -4,7 +4,7 @@
 % if (delta_ts >0), an averaging is performed over delta_ts frames
 %==========================================================================
 
-function [U, V, W] = load_binary_velocity(directory, ts_start,delta_ts, npx,npy,npz, l_ni_h2,l_nj_h2,l_nk_h2, hs)
+function [U, V, W] = load_binary_velocity_w_halo(directory, ts_start,delta_ts, npx,npy,npz, l_ni_h2,l_nj_h2,l_nk_h2, hs)
     filename = [directory 'velocity.'];
     total_size_h2 = l_ni_h2 * l_nj_h2 * l_nk_h2;     % flat array_3d size w/ 2 halo cells
     int_sz = 4;
