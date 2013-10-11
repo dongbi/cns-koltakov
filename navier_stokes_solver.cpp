@@ -236,10 +236,9 @@ void NAVIER_STOKES_SOLVER<T>::Predictor()
             (*RHS_for_AB)(i,j,k).y +=parameters->omega * (*u)(i,j,k).x*jacobian; 
           }
           // buoyancy term
-          //(*RHS_for_AB)(i,j,k).z -= parameters->g * jacobian
-          //                        * ((*rho)(i,j,k) - scalar->Rho_Rest(i,j,k));
           (*RHS_for_AB)(i,j,k).z -= parameters->g * jacobian
-            * ((*(*phi)(1))(i,j,k) - scalar1->Rho_Rest(i,j,k));
+            * (*(*phi)(1))(i,j,k);
+            // * ((*(*phi)(1))(i,j,k) - scalar1->Rho_Rest(i,j,k));
         }
 
   // adding Adams-Bashforth contribution for current time step
@@ -1184,19 +1183,75 @@ int NAVIER_STOKES_SOLVER<T>::Load_Simulation_Data_For_Restart(int restart_ts)
   template<class T> 
 void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
 {
+  //Set velocity and stratification
+  if(parameters->scalar_advection) {
+    T alpha = parameters->alpha;
+    T delta = parameters->delta;
+    T ratio = parameters->ratio; //delta_rho/rho_0
+    T rho0 = parameters->rho0;;
+    T delta_rho = ratio*rho0;  
+    T interface_loc = parameters->z_length/parameters->upper_layer_depth;
+    T delta_perturb = parameters->delta_perturb;
+    T lambda_perturb = parameters->lambda_perturb;
+    T a = parameters->a;
+    T Lw = parameters->Lw;
+    T zeta;
+
+    if(parameters->solitary_wave){
+      //Single Solitary wave 
+      //density
+      for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+        for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+          for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+            zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2))
+              + delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
+            (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
+                  parameters->z_length/interface_loc)/delta*atanh(alpha));          
+          }
+        }
+      }
+    }
+    if(parameters->progressive_wave){
+      //Progressive wave 
+      //density
+      for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+        for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+          for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+            zeta = delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
+            (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
+                  parameters->z_length/interface_loc)/delta*atanh(alpha));           
+          }
+        }
+      }
+    }
+    //passive scalar
+    if(parameters->num_scalars == 2){
+      for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+        for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+          for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+            if(((*grid)(i,j,k).x > 2.25) && ((*grid)(i,j,k).x < 2.75))
+              (*(*phi)(2))(i,j,k) = 1.;
+          }
+        }
+      }
+    }
+  }
+
+  //Other test cases
+
   //set Velocity profile
   //KH billows example
   /*
-     for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-     for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-     for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){	
-     T lambda = (T).25 * parameters->x_length,
-     k_lambda = (T)2 * parameters->pi / lambda,
-     zeta = (T).001 * sin( k_lambda * (*grid)(i,j,k).x ),
-     temp = tanh( ((*grid)(i,j,k).y - parameters->y_length/2. + zeta)
-     /(4.*parameters->y_length/parameters->num_total_nodes_y) );
-     (*u)(i,j,k) = VECTOR_3D<T>(temp,(T)0,(T)0);
-     (*rho)(i,j,k) = temp;
+  for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){	
+        T lambda = (T).25 * parameters->x_length,
+        k_lambda = (T)2 * parameters->pi / lambda,
+        zeta = (T).001 * sin( k_lambda * (*grid)(i,j,k).x ),
+        temp = tanh( ((*grid)(i,j,k).y - parameters->y_length/2. + zeta)
+                  /(4.*parameters->y_length/parameters->num_total_nodes_y) );
+        (*u)(i,j,k) = VECTOR_3D<T>(temp,(T)0,(T)0);
+        (*rho)(i,j,k) = temp;
      }
      convection->Quick_Velocity_Flux_Update(*u); // velocity fluxes on faces
      */
@@ -1205,11 +1260,11 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   //set initial Density profile
   //Lock-exchange example
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++)
-  if( abs((*grid)(i,j,k).x) < (T).5*parameters->x_length ) 
-  (*rho)(i,j,k) = (T).0005;
-  else (*rho)(i,j,k) = (T)-.0005;
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++)
+        if( abs((*grid)(i,j,k).x) < (T).5*parameters->x_length ) 
+          (*rho)(i,j,k) = (T).0005;
+        else (*rho)(i,j,k) = (T)-.0005;
   */
 
   /*
@@ -1217,20 +1272,20 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   //if(parameters->scalar_advection) scalar->Set_Initial_Density_Profile();
   if(parameters->scalar_advection)
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-  for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
-  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
-  if( abs((*grid)(i,j,k).x) > (T).45*parameters->x_length && 
-  abs((*grid)(i,j,k).x) < (T).55*parameters->x_length &&
-  abs((*grid)(i,j,k).y) > (T).45*parameters->y_length && 
-  abs((*grid)(i,j,k).y) < (T).55*parameters->y_length) 
-  (*rho)(i,j,k) = (T).0005;
-  else (*rho)(i,j,k) = (T)-.0005;
-  if( i==grid->I_Max() && 
-  abs((*grid)(i,j,k).y) > (T).65*parameters->y_length && 
-  abs((*grid)(i,j,k).y) < (T).75*parameters->y_length)
-  (*rho)(i,j,k) = (T).0005;
-  //(*u)(i,j,k) = VECTOR_3D<T>(1.,(T)0,(T)0);
-  }
+    for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++)
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
+        if( abs((*grid)(i,j,k).x) > (T).45*parameters->x_length && 
+            abs((*grid)(i,j,k).x) < (T).55*parameters->x_length &&
+            abs((*grid)(i,j,k).y) > (T).45*parameters->y_length && 
+            abs((*grid)(i,j,k).y) < (T).55*parameters->y_length) 
+            (*rho)(i,j,k) = (T).0005;
+        else (*rho)(i,j,k) = (T)-.0005;
+        if( i==grid->I_Max() && 
+            abs((*grid)(i,j,k).y) > (T).65*parameters->y_length && 
+            abs((*grid)(i,j,k).y) < (T).75*parameters->y_length)
+            (*rho)(i,j,k) = (T).0005;
+        //(*u)(i,j,k) = VECTOR_3D<T>(1.,(T)0,(T)0);
+      }
   */
 
   /*
@@ -1239,78 +1294,23 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
   T kappa = .41;
   T u_star = .005;
   for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++)
-  for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
-  for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
-//(*u)(i,j,k).x = .1 * sqrt(1.+(*grid)(i,j,k).y/parameters->y_length);
-T d = parameters->depth ? (*parameters->depth)(i,k) 
-: parameters->y_length;
-//  if((*grid)(i,j,k).y+d <= (T)0)
-//  (*u)(i,j,k).x = 0.;
-//else
-(*u)(i,j,k).x = u_star/kappa * log(9. * u_star
-   * ((*grid)(i,j,k).y+d)
-   / parameters->molecular_viscosity);
-// (*u)(i,j,k)  += .05 * (*u)(i,j,k).x * rand() / (T)RAND_MAX;
-}
+    for(int j=grid->J_Min(); j<=grid->J_Max(); j++)
+      for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++){
+        //(*u)(i,j,k).x = .1 * sqrt(1.+(*grid)(i,j,k).y/parameters->y_length);
+        T d = parameters->depth ? (*parameters->depth)(i,k) 
+              : parameters->y_length;
+        //if((*grid)(i,j,k).y+d <= (T)0)
+          //(*u)(i,j,k).x = 0.;
+        //else
+          (*u)(i,j,k).x = u_star/kappa * log(9. * u_star
+                          * ((*grid)(i,j,k).y+d)
+                          / parameters->molecular_viscosity);
+        //(*u)(i,j,k)  += .05 * (*u)(i,j,k).x * rand() / (T)RAND_MAX;
+      }
 */
 
 //Variable depth channel example
 //if(parameters->scalar_advection) scalar->Set_Uniform_Density_Profile((T)1);
-
-//Bobby's cases
-//Set velocity and stratification
-if(parameters->scalar_advection) {
-  T alpha = parameters->alpha;
-  T delta = parameters->delta;
-  T ratio = parameters->ratio; //delta_rho/rho_0
-  T rho0 = parameters->rho0;;
-  T delta_rho = ratio*rho0;  
-  T interface_loc = parameters->z_length/parameters->upper_layer_depth;
-  T delta_perturb = parameters->delta_perturb;
-  T lambda_perturb = parameters->lambda_perturb;
-  T a = parameters->a;
-  T Lw = parameters->Lw;
-  T zeta;
-
-  if(parameters->solitary_wave){
-    //Single Solitary wave 
-    //density
-    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-        for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2))
-                  + delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
-          (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
-                parameters->z_length/interface_loc)/delta*atanh(alpha));          
-        }
-      }
-    }
-  }
-  if(parameters->progressive_wave){
-    //Progressive wave 
-    //density
-    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-        for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          zeta = delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
-          (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
-                parameters->z_length/interface_loc)/delta*atanh(alpha));           
-        }
-      }
-    }
-  }
-  //passive scalar
-  if(parameters->num_scalars == 2){
-    for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
-      for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
-        for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-          if(((*grid)(i,j,k).x > 2.25) && ((*grid)(i,j,k).x < 2.75))
-            (*(*phi)(2))(i,j,k) = 1.;
-        }
-      }
-    }
-  }
-}
 
 //POSTPROCESS: enforce BCs and populate ghost cells
 assert(mpi_driver);
@@ -1318,23 +1318,6 @@ Set_Progressive_Wave_BC(parameters->time);
 Enforce_Velocity_BC(*u);  
 mpi_driver->Exchange_Ghost_Values_For_Vector_Field(*u); 
 
-/*
-//test print
-if(mpi_driver->west_proc == MPI_PROC_NULL) {
-    cout << "Time step 0" << endl;
-    for(int j = grid->J_Max(); j >= grid->J_Min(); j--) {
-      //cout << ( (*u)(grid->I_Min(),j,ceil(grid->K_Max()/2)).x + 
-      //          (*u)(grid->I_Min()-1,j,ceil(grid->K_Max()/2)).x ) / 2. << endl;
-      cout << (*u)(grid->I_Min()-2,j,ceil(grid->K_Max()/2)).x << "\t" <<
-              (*u)(grid->I_Min()-1,j,ceil(grid->K_Max()/2)).x << "\t" <<
-              (*u)(grid->I_Min()  ,j,ceil(grid->K_Max()/2)).x << "\t" <<
-              (*u)(grid->I_Min()+1,j,ceil(grid->K_Max()/2)).x << "\t" <<
-              (*u)(grid->I_Min()+2,j,ceil(grid->K_Max()/2)).x << "\t" <<
-              ( (*u)(grid->I_Min(),j,ceil(grid->K_Max()/2)).x + 
-                (*u)(grid->I_Min()-1,j,ceil(grid->K_Max()/2)).x ) / 2. << endl;
-    }
-  }
-*/
 }
 //*****************************************************************************
 // Set progressive wave BC

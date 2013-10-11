@@ -263,128 +263,71 @@ void PRESSURE<T>::Condense_Array(ARRAY_3D<T>& P, ARRAY_3D<T>& P_condensed)
 {
   assert(P.Halo_Size()); assert(P_condensed.Halo_Size()); // halo > 0
 
-  if(!parameters->two_d){
-    // P_condensed: interior region
+  // P_condensed: interior region
+  for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
+    for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
+      for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+        int i = 2*ic - 1, j = 2*jc - 1, k = 2*kc - 1; 
+        P_condensed(ic,jc,kc) = P(i,j  ,k  ) + P(i+1,j  ,k  ) 
+          + P(i,j+1,k  ) + P(i+1,j+1,k  )
+          + P(i,j  ,k+1) + P(i+1,j  ,k+1)
+          + P(i,j+1,k+1) + P(i+1,j+1,k+1);
+      }
+  if(mpi_driver->west_proc == MPI_PROC_NULL)
+    for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
+      for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+        int i = P.I_Min()-1, j = 2*jc - 1, k = 2*kc - 1; //i=0
+        P_condensed(P_condensed.I_Min()-1, jc, kc) = P(i,j  ,k  ) 
+          + P(i,j+1,k  )
+          + P(i,j  ,k+1)
+          + P(i,j+1,k+1);
+      }	
+  if(mpi_driver->east_proc == MPI_PROC_NULL)
+    for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
+      for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+        int i = P.I_Max()+1, j = 2*jc - 1, k = 2*kc - 1; //i=imax+1
+        P_condensed(P_condensed.I_Max()+1, jc, kc) = P(i,j  ,k  ) 
+          + P(i,j+1,k  )
+          + P(i,j  ,k+1)
+          + P(i,j+1,k+1);
+      }	
+  if(mpi_driver->frnt_proc == MPI_PROC_NULL)
     for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = 2*jc - 1, k = 2*kc - 1; 
-          P_condensed(ic,jc,kc) = P(i,j  ,k  ) + P(i+1,j  ,k  ) 
-            + P(i,j+1,k  ) + P(i+1,j+1,k  )
-            + P(i,j  ,k+1) + P(i+1,j  ,k+1)
-            + P(i,j+1,k+1) + P(i+1,j+1,k+1);
-        }
-    if(mpi_driver->west_proc == MPI_PROC_NULL)
-      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = P.I_Min()-1, j = 2*jc - 1, k = 2*kc - 1; //i=0
-          P_condensed(P_condensed.I_Min()-1, jc, kc) = P(i,j  ,k  ) 
-            + P(i,j+1,k  )
-            + P(i,j  ,k+1)
-            + P(i,j+1,k+1);
-        }	
-    if(mpi_driver->east_proc == MPI_PROC_NULL)
-      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = P.I_Max()+1, j = 2*jc - 1, k = 2*kc - 1; //i=imax+1
-          P_condensed(P_condensed.I_Max()+1, jc, kc) = P(i,j  ,k  ) 
-            + P(i,j+1,k  )
-            + P(i,j  ,k+1)
-            + P(i,j+1,k+1);
-        }	
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = P.J_Min()-1, k = 2*kc - 1; //j=0
-          P_condensed(ic, P_condensed.J_Min()-1, kc) = P(i  ,j,k  ) 
-            + P(i+1,j,k  )
-            + P(i  ,j,k+1)
-            + P(i+1,j,k+1);
-        }	
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = P.J_Max()+1, k = 2*kc - 1; //j=jmax+1
-          P_condensed(ic, P_condensed.J_Max()+1, kc) = P(i  ,j,k  ) 
-            + P(i+1,j,k  )
-            + P(i  ,j,k+1)
-            + P(i+1,j,k+1);
-        }
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
-          int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Min()-1; //k=0
-          P_condensed(ic, jc, P_condensed.K_Min()-1) = P(i  ,j  ,k) 
-            + P(i+1,j  ,k)
-            + P(i  ,j+1,k)
-            + P(i+1,j+1,k);
-        }
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
-          int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Max()+1; //k=kmax+1
-          P_condensed(ic, jc, P_condensed.K_Max()+1) = P(i  ,j  ,k) 
-            + P(i+1,j  ,k)
-            + P(i  ,j+1,k)
-            + P(i+1,j+1,k);
-        } 
-  } else {
-    // P_condensed: interior region
+      for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+        int i = 2*ic - 1, j = P.J_Min()-1, k = 2*kc - 1; //j=0
+        P_condensed(ic, P_condensed.J_Min()-1, kc) = P(i  ,j,k  ) 
+          + P(i+1,j,k  )
+          + P(i  ,j,k+1)
+          + P(i+1,j,k+1);
+      }	
+  if(mpi_driver->back_proc == MPI_PROC_NULL)
     for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = jc, k = 2*kc - 1; 
-          P_condensed(ic,jc,kc) = P(i,j  ,k  ) + P(i+1,j  ,k  ) 
-            + P(i,j  ,k+1) + P(i+1,j  ,k+1);
-        }
-    if(mpi_driver->west_proc == MPI_PROC_NULL)
-      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = P.I_Min()-1, j = jc, k = 2*kc - 1; //i=0
-          P_condensed(P_condensed.I_Min()-1, jc, kc) = P(i,j  ,k  ) 
-            + P(i,j  ,k+1);
-        }	
-    if(mpi_driver->east_proc == MPI_PROC_NULL)
-      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = P.I_Max()+1, j = jc, k = 2*kc - 1; //i=imax+1
-          P_condensed(P_condensed.I_Max()+1, jc, kc) = P(i,j  ,k  ) 
-            + P(i,j  ,k+1);
-        }	
-    if(mpi_driver->frnt_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = P.J_Min()-1, k = 2*kc - 1; //j=0
-          P_condensed(ic, P_condensed.J_Min()-1, kc) = P(i  ,j,k  ) 
-            + P(i+1,j,k  )
-            + P(i  ,j,k+1)
-            + P(i+1,j,k+1);
-        }	
-    if(mpi_driver->back_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic - 1, j = P.J_Max()+1, k = 2*kc - 1; //j=jmax+1
-          P_condensed(ic, P_condensed.J_Max()+1, kc) = P(i  ,j,k  ) 
-            + P(i+1,j,k  )
-            + P(i  ,j,k+1)
-            + P(i+1,j,k+1);
-        }
-    if(mpi_driver->suth_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
-          int i = 2*ic - 1, j = jc, k = P.K_Min()-1; //k=0
-          P_condensed(ic, jc, P_condensed.K_Min()-1) = P(i  ,j  ,k) 
-            + P(i+1,j  ,k);
-        }
-    if(mpi_driver->nrth_proc == MPI_PROC_NULL)
-      for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
-        for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
-          int i = 2*ic - 1, j = jc, k = P.K_Max()+1; //k=kmax+1
-          P_condensed(ic, jc, P_condensed.K_Max()+1) = P(i  ,j  ,k) 
-            + P(i+1,j  ,k);
-        } 
-    }
-}
+      for(int kc = P_condensed.K_Min(); kc <= P_condensed.K_Max(); kc++){
+        int i = 2*ic - 1, j = P.J_Max()+1, k = 2*kc - 1; //j=jmax+1
+        P_condensed(ic, P_condensed.J_Max()+1, kc) = P(i  ,j,k  ) 
+          + P(i+1,j,k  )
+          + P(i  ,j,k+1)
+          + P(i+1,j,k+1);
+      }
+  if(mpi_driver->suth_proc == MPI_PROC_NULL)
+    for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
+      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
+        int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Min()-1; //k=0
+        P_condensed(ic, jc, P_condensed.K_Min()-1) = P(i  ,j  ,k) 
+          + P(i+1,j  ,k)
+          + P(i  ,j+1,k)
+          + P(i+1,j+1,k);
+      }
+  if(mpi_driver->nrth_proc == MPI_PROC_NULL)
+    for(int ic = P_condensed.I_Min(); ic <= P_condensed.I_Max(); ic++)
+      for(int jc = P_condensed.J_Min(); jc <= P_condensed.J_Max(); jc++){
+        int i = 2*ic - 1, j = 2*jc - 1, k = P.K_Max()+1; //k=kmax+1
+        P_condensed(ic, jc, P_condensed.K_Max()+1) = P(i  ,j  ,k) 
+          + P(i+1,j  ,k)
+          + P(i  ,j+1,k)
+          + P(i+1,j+1,k);
+      } 
+  }
 //*****************************************************************************
 // Extrapolates P_condensed to P (twice the size): coarse to fine
 //*****************************************************************************
@@ -395,59 +338,40 @@ void PRESSURE<T>::Extend_Array(ARRAY_3D<T>& P_condensed, ARRAY_3D<T>& P)
 
   Fill_In_Eight_Boundary_Corners(P_condensed);
 
-  if(!parameters->two_d){
-    for(int ic = P_condensed.I_Min()-1; ic <= P_condensed.I_Max(); ic++)
-      for(int jc = P_condensed.J_Min()-1; jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min()-1; kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic, j = 2*jc, k = 2*kc; 
-          T p000=P_condensed(ic,jc,kc),     p100=P_condensed(ic+1,jc,kc),
-            p010=P_condensed(ic,jc+1,kc),   p001=P_condensed(ic,jc,kc+1),
-            p011=P_condensed(ic,jc+1,kc+1), p101=P_condensed(ic+1,jc,kc+1),
-            p110=P_condensed(ic+1,jc+1,kc), p111=P_condensed(ic+1,jc+1,kc+1);
-          // updating 8 corners of each sub-cell
-          // Corner: 000
-          P(i,j,k)   += (T).015625*((T)27*p000 + (T)9*(p100+p010+p001) 
-              + (T)3*(p011+p101+p110) + p111);
-          // Corner: 100
-          P(i+1,j,k) += (T).015625*((T)27*p100 + (T)9*(p000+p110+p101) 
-              + (T)3*(p111+p001+p010) + p011);
-          // Corner: 010
-          P(i,j+1,k) += (T).015625*((T)27*p010 + (T)9*(p110+p000+p011) 
-              + (T)3*(p001+p111+p100) + p101);
-          // Corner: 001
-          P(i,j,k+1) += (T).015625*((T)27*p001 + (T)9*(p101+p011+p000) 
-              + (T)3*(p010+p100+p111) + p110);
-          // Corner: 011
-          P(i,j+1,k+1) += (T).015625*((T)27*p011 + (T)9*(p111+p001+p010) 
-              + (T)3*(p000+p110+p101) + p100 );
-          // Corner: 101
-          P(i+1,j,k+1) += (T).015625*((T)27*p101 + (T)9*(p001+p111+p100) 
-              + (T)3*(p110+p000+p011) + p010);
-          // Corner: 110
-          P(i+1,j+1,k) += (T).015625*((T)27*p110 + (T)9*(p010+p100+p111) 
-              + (T)3*(p101+p011+p000) + p001);
-          // Corner: 111
-          P(i+1,j+1,k+1) += (T).015625*((T)27*p111 + (T)9*(p011+p101+p110) 
-              + (T)3*(p100+p010+p001) + p000);
-        }//for_loops: ic,jc,kc
-  } else {
-    for(int ic = P_condensed.I_Min()-1; ic <= P_condensed.I_Max(); ic++)
-      for(int jc = P_condensed.J_Min()-1; jc <= P_condensed.J_Max(); jc++)
-        for(int kc = P_condensed.K_Min()-1; kc <= P_condensed.K_Max(); kc++){
-          int i = 2*ic, j = jc, k = 2*kc; 
-          T p000=P_condensed(ic,jc,kc),   p100=P_condensed(ic+1,jc,kc),
-            p001=P_condensed(ic,jc,kc+1), p101=P_condensed(ic+1,jc,kc+1);
-          // updating 4 corners of each sub-cell
-          // Corner: 000
-          P(i,j,k)   = (T).0625*((T)9*p000 + (T)3*(p100+p001) + p101);
-          // Corner: 100
-          P(i+1,j,k) = (T).0625*((T)9*p100 + (T)3*(p000+p101) + p001);
-          // Corner: 001
-          P(i,j,k+1) = (T).0625*((T)9*p001 + (T)3*(p000+p101) + p100);
-          // Corner: 101
-          P(i+1,j,k+1) = (T).0625*((T)9*p101 + (T)3*(p100+p001) + p000);
-        }//for_loops: ic,jc,kc
-  }
+  for(int ic = P_condensed.I_Min()-1; ic <= P_condensed.I_Max(); ic++)
+    for(int jc = P_condensed.J_Min()-1; jc <= P_condensed.J_Max(); jc++)
+      for(int kc = P_condensed.K_Min()-1; kc <= P_condensed.K_Max(); kc++){
+        int i = 2*ic, j = 2*jc, k = 2*kc; 
+        T p000=P_condensed(ic,jc,kc),     p100=P_condensed(ic+1,jc,kc),
+          p010=P_condensed(ic,jc+1,kc),   p001=P_condensed(ic,jc,kc+1),
+          p011=P_condensed(ic,jc+1,kc+1), p101=P_condensed(ic+1,jc,kc+1),
+          p110=P_condensed(ic+1,jc+1,kc), p111=P_condensed(ic+1,jc+1,kc+1);
+        // updating 8 corners of each sub-cell
+        // Corner: 000
+        P(i,j,k)   += (T).015625*((T)27*p000 + (T)9*(p100+p010+p001) 
+            + (T)3*(p011+p101+p110) + p111);
+        // Corner: 100
+        P(i+1,j,k) += (T).015625*((T)27*p100 + (T)9*(p000+p110+p101) 
+            + (T)3*(p111+p001+p010) + p011);
+        // Corner: 010
+        P(i,j+1,k) += (T).015625*((T)27*p010 + (T)9*(p110+p000+p011) 
+            + (T)3*(p001+p111+p100) + p101);
+        // Corner: 001
+        P(i,j,k+1) += (T).015625*((T)27*p001 + (T)9*(p101+p011+p000) 
+            + (T)3*(p010+p100+p111) + p110);
+        // Corner: 011
+        P(i,j+1,k+1) += (T).015625*((T)27*p011 + (T)9*(p111+p001+p010) 
+            + (T)3*(p000+p110+p101) + p100 );
+        // Corner: 101
+        P(i+1,j,k+1) += (T).015625*((T)27*p101 + (T)9*(p001+p111+p100) 
+            + (T)3*(p110+p000+p011) + p010);
+        // Corner: 110
+        P(i+1,j+1,k) += (T).015625*((T)27*p110 + (T)9*(p010+p100+p111) 
+            + (T)3*(p101+p011+p000) + p001);
+        // Corner: 111
+        P(i+1,j+1,k+1) += (T).015625*((T)27*p111 + (T)9*(p011+p101+p110) 
+            + (T)3*(p100+p010+p001) + p000);
+      }//for_loops: ic,jc,kc
 }
 //*****************************************************************************
 // Fills in 8 boundary corners for P array
@@ -529,8 +453,7 @@ void PRESSURE<T>::Smooth_Pressure(int level,
       Smooth_Pressure_In_Z(P, RHS, Residual, mq, mq_new); 
 
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.; 
-      if(!parameters->two_d)
-        Smooth_Pressure_In_Y(P, RHS, Residual, mq, mq_new); 
+      Smooth_Pressure_In_Y(P, RHS, Residual, mq, mq_new); 
 
       //P(P.I_Min(),P.J_Min(),P.K_Min()) = 0.; 
       Smooth_Pressure_In_X(P, RHS, Residual, mq, mq_new); 

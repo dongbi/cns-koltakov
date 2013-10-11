@@ -122,27 +122,27 @@ class POTENTIAL_ENERGY
 template<class T> 
 T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
 {
+  /*
+  //For rectangular domain
+
   T E_b = (T)0;
   Convert_ARRAY_3D_To_Linear_Array(); 
   Sort_Global_Density_Array();
  
   T cell_height = Receive_Initial_Local_Height(); 
-  //inv_domain_planform_width = (T)1 / parameters->x_length; // check on that!
+  inv_domain_planform_width = (T)1 / (parameters->x_length*parameters->y_length); 
   //cout<<"Initial Height="<<cell_height<<" on CPU#"<<mpi_driver->my_rank<<endl;
   //cout<<"Sorted array size="<<local_sorted_array_size<<" out of "
   //    <<local_array_size <<" on CPU#"<<mpi_driver->my_rank<<endl;
+
   // calculate local E_b
   for(int n = 0; n < local_sorted_array_size; n++){
-    //T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
-    T local_height = rho_sorted_cells[n].volume / Calculate_Planform_Area_Smooth_Grid(cell_height,
-        parameters->slope, parameters->xend, parameters->zend, parameters->radius, 
-        parameters->xc, parameters->zc, parameters->x_length, parameters->y_length, 
-        parameters->z_length);
+    T local_height = rho_sorted_cells[n].volume * inv_domain_planform_width;
     if(!mpi_driver->my_rank && !n) local_height *= (T).5; //first cell
     cell_height += local_height;
     rho_sorted_cells[n].z_star = cell_height;
     E_b += rho_sorted_cells[n].rho * rho_sorted_cells[n].volume * cell_height;
-               //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
+    //if(n && rho_sorted_cells[n].rho > rho_sorted_cells[n-1].rho){
     //  cout.precision(15);
     //  cout<<"NOT SORTED:"<<n<<":"<< rho_sorted_cells[n].rho 
     //      <<" > "<<rho_sorted_cells[n-1].rho<<endl;
@@ -156,9 +156,9 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
     mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
   }
   return E_b;
+  */
 
-  /*
-  //BOBBY CHANGES
+  //For sloping domain 
   T E_b = (T)0;
   T local_height, centroid_height;
   Convert_ARRAY_3D_To_Linear_Array(); 
@@ -184,7 +184,6 @@ T POTENTIAL_ENERGY<T>::Background_Potential_Energy()
   if(p>1) mpi_driver->Replace_With_Sum_On_All_Procs(E_b);
 
   return E_b;
-  */
 }
 //*****************************************************************************
 // Calculate phi_d, irreversible diapycnal mixing
@@ -401,6 +400,42 @@ T POTENTIAL_ENERGY<T>::Calculate_Laplacian_of_Rho(int i, int j, int k)
 {
   T laplacian = (T)0;
 
+  //12 and 13
+  laplacian +=
+      (*grid->G12)(i  ,j,k) * ((*rho)(i  ,j+1,k) - (*rho)(i  ,j-1,k)
+                            +  (*rho)(i+1,j+1,k) - (*rho)(i+1,j-1,k))
+    - (*grid->G12)(i-1,j,k) * ((*rho)(i  ,j+1,k) - (*rho)(i  ,j-1,k)
+                            +  (*rho)(i-1,j+1,k) - (*rho)(i-1,j-1,k));
+
+  laplacian +=
+      (*grid->G13)(i  ,j,k) * ((*rho)(i  ,j,k+1) - (*rho)(i  ,j,k-1)
+                            +  (*rho)(i+1,j,k+1) - (*rho)(i+1,j,k-1))
+    - (*grid->G13)(i-1,j,k) * ((*rho)(i  ,j,k+1) - (*rho)(i  ,j,k+1)
+                            +  (*rho)(i-1,j,k+1) - (*rho)(i-1,j,k-1));
+
+  //23 and 21
+  laplacian +=
+      (*grid->G23)(i,j  ,k) * ((*rho)(i,j  ,k+1) - (*rho)(i,j  ,k-1)
+                            +  (*rho)(i,j+1,k+1) - (*rho)(i,j+1,k-1))
+    - (*grid->G23)(i,j-1,k) * ((*rho)(i,j  ,k+1) - (*rho)(i,j  ,k-1)
+                            +  (*rho)(i,j-1,k+1) - (*rho)(i,j-1,k-1));
+  laplacian +=
+      (*grid->G21)(i,j  ,k) * ((*rho)(i+1,j  ,k) - (*rho)(i-1,j  ,k)
+                            +  (*rho)(i+1,j+1,k) - (*rho)(i-1,j+1,k))
+    - (*grid->G21)(i,j-1,k) * ((*rho)(i+1,j  ,k) - (*rho)(i-1,j  ,k)
+                            +  (*rho)(i+1,j-1,k) - (*rho)(i-1,j-1,k));
+
+  //31 and 32
+  laplacian +=
+      (*grid->G31)(i,j,k  ) * ((*rho)(i+1,j,k  ) - (*rho)(i-1,j,k  )
+                            +  (*rho)(i+1,j,k+1) - (*rho)(i-1,j,k+1))
+    - (*grid->G31)(i,j,k-1) * ((*rho)(i+1,j,k  ) - (*rho)(i-1,j,k  )
+                            +  (*rho)(i+1,j,k-1) - (*rho)(i-1,j,k-1));
+  laplacian +=
+      (*grid->G32)(i,j,k  ) * ((*rho)(i,j+1,k  ) - (*rho)(i,j-1,k  )
+                            +  (*rho)(i,j+1,k+1) - (*rho)(i,j-1,k+1))
+    - (*grid->G32)(i,j,k-1) * ((*rho)(i,j+1,k  ) - (*rho)(i,j-1,k  )
+                            +  (*rho)(i,j+1,k-1) - (*rho)(i,j-1,k-1));
   //11
   laplacian += 
       (*grid->G11)(i  ,j,k) * ((*rho)(i+1,j,k)-(*rho)(i  ,j,k))

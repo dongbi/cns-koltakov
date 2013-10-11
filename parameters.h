@@ -22,7 +22,7 @@ class PARAMETERS
       resolve_interface_in_z, stretch_in_x, stretch_in_y, stretch_in_z, 
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
-      turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, two_d,
+      turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, 
       progressive_wave, solitary_wave; 
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, save_restart_timestep_period, print_timestep_period,
@@ -40,7 +40,7 @@ class PARAMETERS
   T time, delta_time, molecular_viscosity, molecular_diffusivity, g, pi, 
     omega, amp_p_grad, freq_p_grad, alpha, delta, ratio, rho0, a, Lw, 
     upper_layer_depth, forcing_amp, m, forcing_period, freq, x_s, slope,
-    delta_perturb, lambda_perturb, xend, zend, radius, xc, zc;
+    delta_perturb, xend, zend, radius, xc, zc;
   std::string output_dir, restart_dir, grid_filename;
   int argc; 
   char** argv;
@@ -61,26 +61,6 @@ class PARAMETERS
     parser->Parse_Parameter_File();
     Set_Parsable_Values();
     Set_Remaining_Parameters();
-    /*
-    //test print
-    cout << "x_stretch =" << x_stretching_ratio << endl;
-    cout << "z_stretch =" << z_stretching_ratio << endl;
-    cout << "alpha =" << alpha << endl;
-    cout << "delta =" << delta << endl;
-    cout << "ratio =" << ratio << endl;
-    cout << "rho0 =" << rho0 << endl;
-    cout << "uld =" << upper_layer_depth << endl;
-    cout << "a =" << a << endl;
-    cout << "Lw =" << Lw << endl;
-    cout << "f_a =" << forcing_amp << endl;
-    cout << "f_p =" << forcing_period << endl;
-    cout << "d_p =" << delta_perturb << endl;
-    cout << "l_p =" << lambda_perturb << endl;
-    cout << "x_s =" << x_s << endl;
-    cout << "slope =" << slope << endl;
-    cout << "two_d =" << two_d << endl;
-    cout << restart_timestep << endl;
-    */
   }
 
   ~PARAMETERS()
@@ -179,10 +159,6 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  if(num_total_nodes_y==1)
-    two_d = true; //two-dimensional simulation (multigrid doesn't work in y)
-  else
-    two_d = false;
   progressive_wave = false;
   solitary_wave = true;
   scalar_advection = true;
@@ -204,8 +180,6 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_z = false;
   stretch_in_y = false;
-  //x_stretching_ratio = (T)0.; //(T)1.01;
-  //z_stretching_ratio = (T)0.; //(T)0.; //(T)1.03; if =0, uniform in vertical
   west_bc = FREE_SLIP;
   east_bc = NO_SLIP;
   suth_bc = NO_SLIP; 
@@ -218,26 +192,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   save_instant_velocity = true; //save instantaneous velocity field
   save_pressure = true; //save pressure field
   aggregate_data = false; //save timeseries of any physical variables
-
-  /*
-  //stratification and wave forcing
-  alpha = 0.99; //interface thickness parameter
-  delta = 0.03; //interface thickness parameter
-  ratio = 0.03; //delta_rho/rho0
-  rho0 = 1000.; //reference density
-  upper_layer_depth = 0.25; //h_1
-  a = 0.1; //solitary wave amplitude 
-  Lw = .7; //solitary wavelength 
-  forcing_amp = .03; //progressive wave amplitude
-  forcing_period = 10; //progressive wave period
-  delta_perturb = 0.01; //initial interface perturbation amplitude
-  lambda_perturb = .5; //initial interface perturbation wavelength
   
-  //bottom bathymetry
-  x_s = 1.; //x position at beginning of slope
-  slope = .105; //.218; 
-  */
-
   // multigrid
   mg_sub_levels = -1; //negative => optimal: calculated below
   max_mg_iters = 128;
@@ -252,9 +207,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   time = (T)0;             // current time
   elapsed_time = 0;        // runtime per time step
   total_time = 0;          // total simulation runtime
-  //delta_time = (T).002; //.01;(le.001)//.0001;(le)//.00001; // time increment
-  //molecular_viscosity   = 1e-6; //(T).1;//1e-4;//5774e-12;//1e-6;//001;//.5;
-  molecular_diffusivity = (T)1e-6;//.5;
+  molecular_diffusivity = (T)1e-6;
   pi = (T)3.14159265;
   g = (T)9.80665;
   omega = (T)0;      // Coriolis
@@ -312,6 +265,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // set pressure gradient to drive the flow
   //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
+  // set lid velocity to drive the flow
   //Set_Lid_Velocity(VECTOR_3D<T>(0,0,-.2));
 
   //Progressive wave boundary condition
@@ -325,10 +279,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   if(mg_sub_levels) {  
     //check if there are enough nodes for all sublevels (i.e., div 2^num_levs)
     int divisor = pow(2, mg_sub_levels);
-    //assert(num_local_nodes_x % divisor == 0);
-    //assert(num_local_nodes_z % divisor == 0);
-    //if(!two_d)
-      //assert(num_local_nodes_y % divisor == 0);
+    assert(num_local_nodes_x % divisor == 0);
+    assert(num_local_nodes_z % divisor == 0);
+    assert(num_local_nodes_y % divisor == 0);
     // setting up structures for multigrid subgrids
     num_subgrid_total_nodes_x = new int[mg_sub_levels];
     num_subgrid_total_nodes_y = new int[mg_sub_levels];
@@ -437,7 +390,6 @@ void PARAMETERS<T>::Init_Depth_With_Sloping_Bottom(
   depth = new ARRAY_2D<T>(i_min, i_max, j_min, j_max, halo_size);
 
   T node_x_s = x_s/x_length; //node at beginning of slope
-  //T node_slope = rise/(run/x_length); //in x node coordinates
   T node_slope = slope*x_length; //in x node coordinates
 
   for (int i=i_min_w_h; i<=i_max_w_h; i++) {

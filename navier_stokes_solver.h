@@ -88,15 +88,16 @@ void NAVIER_STOKES_SOLVER<T>::Scalar_Solve(){
       scalar1->Solve();
       scalar2->Solve();
     }
-    if(parameters->potential_energy){
-      T E_background = potential_energy->Calculate(); // executed by all
-      T E_kinetic = Total_Kinetic_Energy();
-      if(!mpi_driver->my_rank){
-        cout<<"E_background = "<<E_background<<endl;
-        cout<<"E_kinetic = "<<E_kinetic<<endl;
-      }
-      if(parameters->time_step % parameters->save_data_timestep_period == 0)
+    if(parameters->time_step % parameters->save_data_timestep_period == 0){
+      if(parameters->potential_energy){
+        T E_background = potential_energy->Calculate(); // executed by all
+        T E_kinetic = Total_Kinetic_Energy();
+        if(!mpi_driver->my_rank){
+          cout<<"E_background = "<<E_background<<endl;
+          cout<<"E_kinetic = "<<E_kinetic<<endl;
+        }
         potential_energy->Write_To_Disk();
+      }
     }
   }
 }
