@@ -1192,10 +1192,10 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
     T delta_rho = ratio*rho0;  
     T interface_loc = parameters->z_length/parameters->upper_layer_depth;
     T delta_perturb = parameters->delta_perturb;
-    T lambda_perturb = parameters->lambda_perturb;
     T a = parameters->a;
     T Lw = parameters->Lw;
     T zeta;
+    srand(time(NULL));
 
     if(parameters->solitary_wave){
       //Single Solitary wave 
@@ -1204,7 +1204,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
         for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
           for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
             zeta = -a*exp(-pow((*grid)(i,j,k).x/Lw,2))
-              + delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
+                   + delta_perturb*( rand() / (T)RAND_MAX );
             (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
                   parameters->z_length/interface_loc)/delta*atanh(alpha));          
           }
@@ -1217,7 +1217,7 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
       for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
         for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
           for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
-            zeta = delta_perturb*cos(2*parameters->pi/lambda_perturb*(*grid)(i,j,k).y);
+            zeta = delta_perturb*( rand() / (T)RAND_MAX );
             (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z - zeta + 
                   parameters->z_length/interface_loc)/delta*atanh(alpha));           
           }

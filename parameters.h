@@ -145,7 +145,6 @@ void PARAMETERS<T>::Set_Parsable_Values() {
   if(!parser->Get_Value("forcing_amp",forcing_amp)) forcing_amp = .05;
   if(!parser->Get_Value("forcing_period",forcing_period)) forcing_period = 10.;
   if(!parser->Get_Value("delta_perturb",delta_perturb)) delta_perturb = 0.;
-  if(!parser->Get_Value("lambda_perturb",lambda_perturb)) lambda_perturb = 1.;
   if(!parser->Get_Value("x_s",x_s)) x_s = 1.;
   if(!parser->Get_Value("slope",slope)) slope = .218;
   // output
@@ -245,14 +244,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   // max allowable # of MG levels based on the number of local nodes in x/y/z
   if(mg_sub_levels<0){
     int mn;
-    if(two_d) {
-      mn = min(num_local_nodes_x,num_local_nodes_z);
-      mg_sub_levels = log(mn)/log(2);
-    }
-    else {
-      mn = min( min(num_local_nodes_x,num_local_nodes_y), num_local_nodes_z );
-      mg_sub_levels = log(mn)/log(2);
-    }
+    mn = min( min(num_local_nodes_x,num_local_nodes_y), num_local_nodes_z );
+    mg_sub_levels = log(mn)/log(2);
   }
 
   halo_size = 2; //number of halo cells per boundary for local grids
@@ -294,10 +287,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
     for(int n = 0; n < mg_sub_levels; n++) {
       num_subgrid_total_nodes_x[n] = num_total_nodes_x / pow(2,n+1);
       num_subgrid_total_nodes_z[n] = num_total_nodes_z / pow(2,n+1);
-      if(two_d)
-        num_subgrid_total_nodes_y[n] = num_total_nodes_y;  
-      else
-        num_subgrid_total_nodes_y[n] = num_total_nodes_y / pow(2,n+1);  
+      num_subgrid_total_nodes_y[n] = num_total_nodes_y / pow(2,n+1);  
       num_subgrid_local_nodes_x[n] = num_subgrid_total_nodes_x[n] / num_cpu_x;
       num_subgrid_local_nodes_y[n] = num_subgrid_total_nodes_y[n] / num_cpu_y;
       num_subgrid_local_nodes_z[n] = num_subgrid_total_nodes_z[n] / num_cpu_z;
