@@ -1,0 +1,67 @@
+\documentclass[12pt]{report}
+
+%math packages
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amstext}
+\usepackage{dsfont}
+
+%other packages
+\usepackage{natbib}
+\usepackage{comment}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{epstopdf}
+\usepackage[pdftex,colorlinks]{hyperref}
+  \hypersetup{linkcolor=black,urlcolor=black,citecolor=black}
+
+
+%page setup
+\usepackage{geometry}
+\geometry{letterpaper}
+\usepackage{fullpage}
+
+\title{User Guide\\ \vspace{0.1in} \large{Curvilinear Navier-Stokes (CNS) C++ Code}}
+\author{Bobby Arthur \\ Department of Civil and Environmental Engineering
+                     \\ Environmental Fluid Mechanics Laboratory
+                     \\ Stanford University}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\chapter{Code Structure}
+
+\section{Introduction}
+This curvilinear Navier-Stokes (CNS) C++ code is also known as ``cns-koltakov" or, more affectionately, ``Sergey's Code," after its author, Sergey Koltakov. It is the third version of the original Fortran code written by Yan Zang at Stanford in the early 1990's \citep{zang1994}. The original code was serial (one processor). The second version was updated by Cui to run with multiple processors using MPI, and is known as PCUI \citep{cui2001}. This latest version of the code is basically a translation of PCUI to C++ using an object-oriented framework, which allowed for the addition of a moving grid \citep{koltakov2012}. Over the years, these various versions of the code have been used to study a wide range of geophysical applications.
+
+The code is based on the fractional step method of \citet{zang1994} and includes the LES model of \citet{zang1993}\footnote{The older versions of the code include the LES model. At present, it has not been written into the C++ version. Someone should do this.}. It solves the incompressible Navier-Stokes equations on a generalized curvilinear grid with a rigid lid, employing a semi-implicit time integration scheme with Adams-Bashforth for the explicit terms and Crank-Nicholson for the implicit terms. Additionally, it uses the QUICK and SHARP schemes for advection of momentum and scalars, respectively, and solves the pressure Poisson equation with a multigrid method. 
+
+\section{File Summary}
+
+\section{Getting Started}
+ 
+\chapter{Code Output}
+
+\section{Binary Output}
+
+\section{Loading and Viewing Output Data}
+
+\chapter{Examples}
+
+\section{Internal Seiche}
+
+\section{Lid-driven Cavity}
+
+\section{Lock Exchange}
+
+\section{Breaking Internal Wave}
+
+\section{Sediment Transport}
+Coming soon!
+
+\bibliographystyle{apalike}
+\bibliography{cns_user_guide}
+
+\end{document}

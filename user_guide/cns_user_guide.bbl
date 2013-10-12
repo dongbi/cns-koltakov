@@ -1,0 +1,26 @@
+\begin{thebibliography}{}
+
+\bibitem[Cui and Street, 2001]{cui2001}
+Cui, A. and Street, R.~L. (2001).
+\newblock Large-eddy simulation of turbulent rotating convective flow
+  development.
+\newblock {\em J. Fluid Mech.}, 447:53--84.
+
+\bibitem[Koltakov and Fringer, 2012]{koltakov2012}
+Koltakov, S. and Fringer, O.~B. (2012).
+\newblock Moving grid method for numerical simulation of stratified flows.
+\newblock {\em Int. J. Numer. Meth. Fl.}
+
+\bibitem[Zang et~al., 1993]{zang1993}
+Zang, Y., Street, R.~L., and Koseff, J.~R. (1993).
+\newblock A dynamic mixed subgrid-scale model and its application to turbulent
+  recirculating flows.
+\newblock {\em Physics of Fluids A: Fluid Dynamics}, 5:3186.
+
+\bibitem[Zang et~al., 1994]{zang1994}
+Zang, Y., Street, R.~L., and Koseff, J.~R. (1994).
+\newblock A non-staggered grid, fractional step method for time-dependent
+  incompressible navier-stokes equations in curvilinear coordinates.
+\newblock {\em J. Comput. Phys.}, 114(1):18--33.
+
+\end{thebibliography}
