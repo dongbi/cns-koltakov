@@ -47,6 +47,7 @@ void ARRAY_3D<T>::Set_NonHalo_Elements_To(const T& element_value)
 	(*this)(i,j,k) = element_value;
 }
 //*****************************************************************************
+/*
 template <class T>
 T& ARRAY_3D<T>::operator () (const int i, const int j, const int k) 
 {
@@ -64,6 +65,6 @@ T ARRAY_3D<T>::operator () (const int i, const int j, const int k) const
   return array[i-i_min_w_h + (j-j_min_w_h)*i_size_w_h + 
 		 (k-k_min_w_h)*i_size_w_h*j_size_w_h];
 }
-
+*/
 template class ARRAY_3D<double>;
 template class ARRAY_3D<VECTOR_3D<double> >;

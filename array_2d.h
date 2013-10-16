@@ -39,8 +39,8 @@ class ARRAY_2D
 		  const int jmin, const int jmax, const int num_halo_cells);
   void Set_All_Elements_To(const T element_value);
 
-  T& operator() (const int i, const int j);
-  T  operator() (const int i, const int j) const;
+  inline T& operator() (const int i, const int j);
+  inline T  operator() (const int i, const int j) const;
  
   ARRAY_2D<T>& operator=(const ARRAY_2D<T>& source)
   {Equal_Dimensions(*this,source);
@@ -151,14 +151,14 @@ void ARRAY_2D<T>::Set_All_Elements_To(const T element_value)
 }
 //***************************************************************************
 template <class T>
-T& ARRAY_2D<T>::operator () (const int i, const int j) 
+inline T& ARRAY_2D<T>::operator () (const int i, const int j) 
 {
   assert(i >= i_min_w_h && i <= i_max_w_h && j >= j_min_w_h && j <= j_max_w_h);
   return array[i-i_min_w_h + (j-j_min_w_h)*i_size_w_h];
 }
 //***************************************************************************
 template <class T>
-T ARRAY_2D<T>::operator () (const int i, const int j) const
+inline T ARRAY_2D<T>::operator () (const int i, const int j) const
 {
   assert(i >= i_min_w_h && i <= i_max_w_h && j >= j_min_w_h && j <= j_max_w_h);
   return array[i-i_min_w_h + (j-j_min_w_h)*i_size_w_h];

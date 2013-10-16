@@ -180,9 +180,9 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_x = false;   // move nodes towards the boundary
   stretch_in_z = false;
   stretch_in_y = false;
-  west_bc = FREE_SLIP;
-  east_bc = FREE_SLIP;
-  suth_bc = FREE_SLIP; 
+  west_bc = NO_SLIP;
+  east_bc = NO_SLIP;
+  suth_bc = NO_SLIP; 
   nrth_bc = back_bc = frnt_bc = FREE_SLIP;
   universal_limiter = SHARP; //UPWIND; //MUSCL; //scalar convection
 

@@ -62,8 +62,8 @@ class ARRAY_3D
   void Set_Elements_To(const T* a, int size);
   void Set_NonHalo_Elements_To(const T& element_value);
 
-  T& operator() (const int i, const int j, const int k);
-  T  operator() (const int i, const int j, const int k) const;
+  inline T& operator() (const int i, const int j, const int k);
+  inline T  operator() (const int i, const int j, const int k) const;
 
   bool operator==(const ARRAY_3D<T>& a) const
   {if(Equal_Dimensions(*this,a)){
@@ -207,5 +207,23 @@ inline ostream& operator<< (ostream& output, const ARRAY_3D<T>& a)
       for (int k = a.K_Min_With_Halo(); k <= a.K_Max_With_Halo(); k++)
 	output <<"["<<i<<","<<j<<","<<k<<"]"<<"="<<a(i,j,k)<<endl;
   return output;
+}
+
+template <class T>
+inline T& ARRAY_3D<T>::operator () (const int i, const int j, const int k) 
+{
+  assert(i >= i_min_w_h && i <= i_max_w_h && j >= j_min_w_h && 
+         j <= j_max_w_h && k >= k_min_w_h && k <= k_max_w_h);
+  return array[i-i_min_w_h + (j-j_min_w_h)*i_size_w_h + 
+		 (k-k_min_w_h)*i_size_w_h*j_size_w_h];
+}
+
+template <class T>
+inline T ARRAY_3D<T>::operator () (const int i, const int j, const int k) const
+{
+  assert(i >= i_min_w_h && i <= i_max_w_h && j >= j_min_w_h && 
+         j <= j_max_w_h && k >= k_min_w_h && k <= k_max_w_h);
+  return array[i-i_min_w_h + (j-j_min_w_h)*i_size_w_h + 
+		 (k-k_min_w_h)*i_size_w_h*j_size_w_h];
 }
 #endif
