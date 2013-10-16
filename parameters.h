@@ -23,7 +23,7 @@ class PARAMETERS
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
       turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, 
-      progressive_wave, solitary_wave; 
+      progressive_wave, solitary_wave, internal_seiche; 
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, save_restart_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
@@ -159,17 +159,18 @@ template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
   progressive_wave = false;
-  solitary_wave = true;
+  solitary_wave = false;
+  internal_seiche = true;
   scalar_advection = true;
-  num_scalars = 2; //1: no scalar or rho only, 2: rho and passive scalar
-  potential_energy = true; //true; //based on scalar
+  num_scalars = 1; //1: no scalar or rho only, 2: rho and passive scalar
+  potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
   moving_grid = false; //true;
   open_top = false;
   variable_fixed_depth = true; //sinusoidal bathymetry
   coriolis = false;  
-  read_grid_from_file = true; //true;
+  read_grid_from_file = false; //true;
 
   // boundary conditions
   periodic_in_x = false; //horizontal
@@ -180,8 +181,8 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   stretch_in_z = false;
   stretch_in_y = false;
   west_bc = FREE_SLIP;
-  east_bc = NO_SLIP;
-  suth_bc = NO_SLIP; 
+  east_bc = FREE_SLIP;
+  suth_bc = FREE_SLIP; 
   nrth_bc = back_bc = frnt_bc = FREE_SLIP;
   universal_limiter = SHARP; //UPWIND; //MUSCL; //scalar convection
 

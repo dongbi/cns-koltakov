@@ -1197,6 +1197,19 @@ void NAVIER_STOKES_SOLVER<T>::Set_Initial_Conditions()
     T zeta;
     srand(time(NULL));
 
+    if(parameters->internal_seiche){
+      //Internal seiche
+      //density
+      for(int i=grid->I_Min_With_Halo(); i<=grid->I_Max_With_Halo(); i++) {
+        for(int j=grid->J_Min_With_Halo(); j<=grid->J_Max_With_Halo(); j++) {
+          for(int k=grid->K_Min_With_Halo(); k<=grid->K_Max_With_Halo(); k++) {
+            (*(*phi)(1))(i,j,k) = 1-.5*ratio*tanh(2.*((*grid)(i,j,k).z  
+                  - a*cos(parameters->pi*(*grid)(i,j,k).x)
+                  + parameters->z_length/2)/delta*atanh(alpha));          
+          }
+        }
+      }
+    }
     if(parameters->solitary_wave){
       //Single Solitary wave 
       //density

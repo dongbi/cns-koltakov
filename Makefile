@@ -1,6 +1,6 @@
 OBJS = array_3d.o curvilinear_grid.o navier_stokes_solver.o
 CC = mpicc
-CFLAGS = -c -O2  
+CFLAGS = -c -O3 -DNDEBUG  
 
 test: $(OBJS) test.cpp
 	$(CC) $(OBJS) test.cpp -o test
