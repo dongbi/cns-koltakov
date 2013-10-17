@@ -36,26 +36,61 @@
 \section{Introduction}
 This curvilinear Navier-Stokes (CNS) C++ code is also known as ``cns-koltakov" or, more affectionately, ``Sergey's Code," after its author, Sergey Koltakov. It is the third version of the original Fortran code written by Yan Zang at Stanford in the early 1990's \citep{zang1994}. The original code was serial (one processor). The second version was updated by Cui to run with multiple processors using MPI, and is known as PCUI \citep{cui2001}. This latest version of the code is basically a translation of PCUI to C++ using an object-oriented framework, which allowed for the addition of a moving grid \citep{koltakov2012}. Over the years, these various versions of the code have been used to study a wide range of geophysical flows.
 
-The code is based on the fractional step method of \citet{zang1994} and includes the LES model of \citet{zang1993}\footnote{The older versions of the code include the LES model. At present, it has not been written into the C++ version. Someone should do this.}. It solves the incompressible Navier-Stokes equations on a generalized curvilinear grid with a rigid lid, employing a semi-implicit time integration scheme with Adams-Bashforth for the explicit terms and Crank-Nicholson for the implicit terms. Additionally, it uses the QUICK and SHARP schemes for advection of momentum and scalars, respectively, and solves the pressure Poisson equation with a multigrid method. 
+The code is based on the fractional step method of \citet{zang1994} and includes the LES model of \citet{zang1993}. It solves the incompressible Navier-Stokes equations on a generalized curvilinear grid with a rigid lid, employing a semi-implicit time integration scheme with Adams-Bashforth for the explicit terms and Crank-Nicholson for the implicit terms. Additionally, it uses the QUICK and SHARP schemes for advection of momentum and scalars, respectively, and solves the pressure Poisson equation with a multigrid method. 
 
 \section{File Summary}
 The code is contained in the directory \texttt{/cns-koltakov}, which contains the following files:
 \begin{description}
-\item[\texttt{parameters.dat}] Hello
-\item[\texttt{parameters.h}] Hello
-\item[\texttt{navier\_stokes\_solver.h}/\texttt{.cpp}] Hello
-\item[\texttt{curvilinear\_grid.h}/\texttt{.cpp}] Hello
+\item[\texttt{Makefile}] \hfill \\Used to compile and run the code (see \hyperref[sec:start]{Section \ref*{sec:start}}).
+\item[\texttt{parameters.dat}] \hfill \\The main input file for the code, which contains the most commonly adjusted variables. The file is read at runtime, so the user may redefine variables without recompiling the code.
+\item[\texttt{parameters.h}] \hfill \\Defines all the parameters for the code, including physical variables, boundary conditions, and multigrid parameters. Also allows the user to turn different modules (e.g. scalar advection, moving grid, etc.) on or off, run predefined cases (see \hyperref[chap:examples]{Chapter \ref*{chap:examples}}), or change the bottom bathymetry. In order to modify \texttt{parameters.dat}, the function \texttt{Set\_Parsable\_Values()} must be modified here.
+\item[\texttt{test.cpp}] \hfill \\The main loop of the code. 
+\item[\texttt{navier\_stokes\_solver.h}/\texttt{.cpp}] \hfill \\Contains the time-stepping scheme for the momentum equations, including, most importantly, the \texttt{Predictor()} and \texttt{Corrector()} schemes. Also where all arrays containing physical variables are initialized. Additionally, the scalar solve, background potential energy, post-processing, and other similar functions are called here.
+\item[\texttt{pressure.h}] \hfill \\Contains the multigrid pressure Poisson equation solver.
+\item[\texttt{scalar.h}] \hfill \\Updates scalar quantities after the velocity has been updated.
+\item[\texttt{convection.h}] \hfill \\Contains the advection schemes used in the code, specifically, QUICK for momentum advection and SHARP for scalar advection.
+\item[\texttt{universal\_limiter.h}] \hfill \\Contains the limiter used in the above advection schemes.
+\item[\texttt{tridiagonal\_solver.h}] \hfill \\Contains functions used to solve tridiagonal systems with periodic or non-periodic boundary conditions. Used both in the implicit part of the momentum and scalar solutions, as well as the smoothing operation in the multigrid solver.
+\item[\texttt{curvilinear\_grid.h}/\texttt{.cpp}] \hfill \\Creates the grid and calculates the necessary metric quantities.
+\item[\texttt{mpi\_driver.h}/\texttt{.cpp}] \hfill \\Initializes and controls parallel implementation using MPI. Also defines binary output functions.
+\item[\texttt{metric\_quantities.h}] \hfill \\Defines the metric quantities that are calculated in \texttt{curvilinear\_grid.cpp}.
+\item[\texttt{array\_Xd.h}/\texttt{.cpp}] \hfill \\Classes that define all array operations in the code, where \texttt{X} is a number 1-3.
+\item[\texttt{potential\_energy.h}] \hfill \\Calculates the background potential energy and related quantities. Note that kinetic energy and dissipation are calculated in \texttt{navier\_stokes\_solver.cpp}.
+\item[\texttt{turbulence.h}] \hfill \\Contains the turbulence model, which is not fully implemented (yet).
+\item[\texttt{curvilinear\_moving\_grid.h}/\texttt{moving\_grid\_engine.h}] \hfill \\Implementation of the moving grid.
+\item[\texttt{interpolant.h}] \hfill \\Used with the moving grid to interpolate physical variables from the old to new grid.
+\item[\texttt{data\_aggregator.h}] \hfill \\Aggregates time-series of physical variables.
+\item[\texttt{parameter\_file\_parser.h}] \hfill \\Reads the input file \texttt{parameters.dat}.
 \end{description}
 
-\section{Getting Started}
+\section{Getting Started}\label{sec:start}
+To begin using the code, it must first be compiled with the Intel C++ Compiler (\texttt{icc}) and the MPICH compiler (\texttt{mpicc}). A free version of the Intel C++ Compiler can be found at \url{http://software.intel.com/en-us/non-commercial-software-development}, while MPCIH can be found at \url{http://www.mpich.org/downloads/}. Note that MPICH must be compiled on your machine with the Intel compiler \texttt{icc} flag, see the MPICH documentation for specifics.
+
+Once the compilers have been downloaded, make sure that the path to \texttt{mpicc} is specified correctly in the Makefile next to \texttt{CC=}. Then, the code can be compiled with \texttt{make test} and run with \texttt{make runX}, where \texttt{X} is the number of processors. Note that this number must agree with what is specified in \texttt{parameters.dat}. That is, \texttt{X = num\_cpu\_x*num\_cpu\_y*num\_cpu\_z}.
+
  
 \chapter{Code Output}
 
 \section{Binary Output}
+The code output is contained in binary files that correspond to a specific processor. 
+Data is output for the variables specified in \texttt{parameters.h} at the frequency 
+defined by \texttt{save\_timestep\_period} in \texttt{parameters.dat}. These files will be stored in \texttt{output\_dir} defined in \texttt{parameters.dat}. The files are organized by variable and processor. For example, the velocity output from the 0th processor will be stored in \texttt{velocity.0}.
 
 \section{Loading and Viewing Output Data}
+The \texttt{/cns-koltakov/mfiles} directory contains MATLAB scripts to view data from binary output directly, or to load \texttt{.mat} files which can be used in your own scripts. The files included in this directory are as follows.
 
-\chapter{Examples}
+\begin{description}
+\item[\texttt{cns\_viz.m}] \hfill \\Plots 2D slices of any physical variable or 3D isosurfaces of density and vorticity.
+\item[\texttt{cns\_load.m}] \hfill \\Loads physical variables into matrices that are stored in a \texttt{.mat} file.
+\item[\texttt{cns\_load\_energy.m}] \hfill \\Loads a time series of energy quantities and saves a \texttt{.mat} file.
+\item[\texttt{load\_binary\_X.m}] \hfill \\Functions that load data directly from binary output files and return a 3D (x,y,z) matrix.
+\item[\texttt{calculate\_binary\_X.m}] \hfill \\Functions that calculate other quantities (e.g. vorticity) using data from binary output files.
+\end{description}
+
+\section{Restarts}
+The code is able to save data for restarts if a nonzero value for \texttt{restart\_timestep\_period} is given in \texttt{parameters.dat}.
+
+\chapter{Examples}\label{chap:examples}
 
 \section{Internal Seiche}
 
