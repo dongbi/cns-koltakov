@@ -159,9 +159,9 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  progressive_wave = true;
+  progressive_wave = false;
   solitary_wave = false;
-  internal_seiche = false;
+  internal_seiche = true;
   lid_driven_cavity = false;
   pressure_driven = false;
   lock_exchange = false;
@@ -172,7 +172,7 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   turbulence = false;
   moving_grid = false; 
   open_top = false;
-  variable_fixed_depth = true; //non-flat bottom bathymetry
+  variable_fixed_depth = false; //non-flat bottom bathymetry
   coriolis = false;  
   read_grid_from_file = false; 
 

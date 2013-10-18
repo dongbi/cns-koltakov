@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2012.10.16)  17 OCT 2013 17:51
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2012.10.16)  18 OCT 2013 13:54
 entering extended mode
  %&-line parsing enabled.
 **cns_user_guide.tex
@@ -407,39 +407,51 @@ LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 44.
 [2
 
-] [3] [4]
+] [3]
+Underfull \hbox (badness 10000) in paragraph at lines 67--70
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 67--70
+
+ []
+
+[4] [5]
 Chapter 2.
 
-Overfull \hbox (43.88583pt too wide) in paragraph at lines 75--78
+Overfull \hbox (43.88583pt too wide) in paragraph at lines 79--82
 \OT1/cmr/m/n/12 out-put for the vari-ables spec-i-fied in \OT1/cmtt/m/n/12 para
 meters.h \OT1/cmr/m/n/12 at the fre-quency de-fined by \OT1/cmtt/m/n/12 save[]t
 imestep[]period
  []
 
-[5
+[6
 
-] [6]
+] [7]
 Chapter 3.
 File: seiche.eps Graphic file (type eps)
 <seiche.eps>
 File: lid.eps Graphic file (type eps)
  <lid.eps>
 File: lock.eps Graphic file (type eps)
- <lock.eps> [7
+ <lock.eps> [8
 
-] [8] [9]
+] [9] [10]
 File: solitary.eps Graphic file (type eps)
  <solitary.eps>
-(./cns_user_guide.bbl [10]) [11
+File: progressive.eps Graphic file (type eps)
+
+<progressive.eps> (./cns_user_guide.bbl [11] [12]) [13
 
 ] (./cns_user_guide.aux) ) 
 Here is how much of TeX's memory you used:
- 5757 strings out of 493849
- 81086 string characters out of 1152845
+ 5759 strings out of 493849
+ 81120 string characters out of 1152845
  157090 words of memory out of 3000000
- 8920 multiletter control sequences out of 15000+50000
+ 8921 multiletter control sequences out of 15000+50000
  13218 words of font info for 51 fonts, out of 3000000 for 9000
  714 hyphenation exceptions out of 8191
  41i,6n,36p,1270b,370s stack positions out of 5000i,500n,10000p,200000b,50000s
 
-Output written on cns_user_guide.dvi (12 pages, 45796 bytes).
+Output written on cns_user_guide.dvi (14 pages, 48116 bytes).
