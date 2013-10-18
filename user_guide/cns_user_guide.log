@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2012.10.16)  16 OCT 2013 17:38
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2012.10.16)  17 OCT 2013 17:51
 entering extended mode
  %&-line parsing enabled.
 **cns_user_guide.tex
@@ -420,18 +420,26 @@ imestep[]period
 
 ] [6]
 Chapter 3.
-(./cns_user_guide.bbl [7
+File: seiche.eps Graphic file (type eps)
+<seiche.eps>
+File: lid.eps Graphic file (type eps)
+ <lid.eps>
+File: lock.eps Graphic file (type eps)
+ <lock.eps> [7
 
-]) [8
+] [8] [9]
+File: solitary.eps Graphic file (type eps)
+ <solitary.eps>
+(./cns_user_guide.bbl [10]) [11
 
 ] (./cns_user_guide.aux) ) 
 Here is how much of TeX's memory you used:
- 5742 strings out of 493849
- 80937 string characters out of 1152845
+ 5757 strings out of 493849
+ 81086 string characters out of 1152845
  157090 words of memory out of 3000000
- 8910 multiletter control sequences out of 15000+50000
+ 8920 multiletter control sequences out of 15000+50000
  13218 words of font info for 51 fonts, out of 3000000 for 9000
  714 hyphenation exceptions out of 8191
- 41i,6n,36p,776b,370s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 41i,6n,36p,1270b,370s stack positions out of 5000i,500n,10000p,200000b,50000s
 
-Output written on cns_user_guide.dvi (9 pages, 33912 bytes).
+Output written on cns_user_guide.dvi (12 pages, 45796 bytes).

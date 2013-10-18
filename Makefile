@@ -16,6 +16,8 @@ array_3d.o : array_3d.h array_3d.cpp array_2d.h vector_3d.h
 
 run1:
 	mpiexec -n 1 ./test
+run2:
+	mpiexec -n 2 ./test
 run4:
 	mpiexec -n 4 ./test
 run8:

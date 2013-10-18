@@ -23,7 +23,8 @@ class PARAMETERS
       potential_energy, scalar_advection, read_grid_from_file, aggregate_data,
       save_fluxes, save_instant_velocity, save_pressure, sediment_advection, 
       turbulence, moving_grid, open_top, variable_fixed_depth, coriolis, 
-      progressive_wave, solitary_wave, internal_seiche; 
+      progressive_wave, solitary_wave, internal_seiche, lid_driven_cavity,
+      pressure_driven, lock_exchange; 
  int  restart_timestep, max_timestep, 
       save_data_timestep_period, save_restart_timestep_period, print_timestep_period,
       mg_sub_levels, max_mg_iters, mg_max_smoothing_iters, 
@@ -158,19 +159,22 @@ void PARAMETERS<T>::Set_Parsable_Values() {
 template<class T>
 void PARAMETERS<T>::Set_Remaining_Parameters(){
   // boolean parameters
-  progressive_wave = false;
+  progressive_wave = true;
   solitary_wave = false;
-  internal_seiche = true;
+  internal_seiche = false;
+  lid_driven_cavity = false;
+  pressure_driven = false;
+  lock_exchange = false;
   scalar_advection = true;
   num_scalars = 1; //1: no scalar or rho only, 2: rho and passive scalar
   potential_energy = false; //true; //based on scalar
   sediment_advection = false;
   turbulence = false;
-  moving_grid = false; //true;
+  moving_grid = false; 
   open_top = false;
-  variable_fixed_depth = true; //sinusoidal bathymetry
+  variable_fixed_depth = true; //non-flat bottom bathymetry
   coriolis = false;  
-  read_grid_from_file = false; //true;
+  read_grid_from_file = false; 
 
   // boundary conditions
   periodic_in_x = false; //horizontal
@@ -256,11 +260,13 @@ void PARAMETERS<T>::Set_Remaining_Parameters(){
   j_min_w_h = j_min-halo_size; j_max_w_h = j_max+halo_size;
   k_min_w_h = k_min-halo_size; k_max_w_h = k_max+halo_size;
 
-  // set pressure gradient to drive the flow
-  //pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
+  //set pressure gradient to drive the flow
+  if(pressure_driven)
+    pressure_gradient = new VECTOR_3D<T>(25e-5,0,0);
 
-  // set lid velocity to drive the flow
-  //Set_Lid_Velocity(VECTOR_3D<T>(0,0,-.2));
+  //set lid velocity to drive the flow
+  if(lid_driven_cavity)
+    Set_Lid_Velocity(VECTOR_3D<T>(0.1,0,0));
 
   //Progressive wave boundary condition
   if(progressive_wave){
